@@ -124,7 +124,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // --- الترويسة ---
     worksheet.mergeCells(currentRow, 1, currentRow, 8);
     const titleCell = worksheet.getCell(currentRow, 1);
-    titleCell.value = "تَرِفَة";
+    titleCell.value = "زينة";
     titleCell.font = {
       name: "Tajawal",
       size: 28,
@@ -355,7 +355,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     currentRow += 2;
     worksheet.mergeCells(currentRow, 1, currentRow, 8);
     const footerCell = worksheet.getCell(currentRow, 1);
-    footerCell.value = "شكراً لتعاملكم مع تَرِفَة - نتمنى لكم تجارة راقية";
+    footerCell.value = "شكراً لتعاملكم مع زينة - نتمنى لكم تجارة راقية";
     footerCell.font = {
       name: "Tajawal",
       size: 10,

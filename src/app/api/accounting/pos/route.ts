@@ -58,10 +58,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = posSaleSchema.parse(body);
 
-    // التحقق من وجود المنتجات وكفاية المخزون
+    const demoSessionId = (user as any)?.demoSessionId;
+
+    // التحقق من وجود المنتجات وكفاية المخزون (مع عزل الجلسة التجريبية)
     for (const item of validated.items) {
       const product = await db.product.findUnique({
-        where: { id: item.productId },
+        where: {
+          id: item.productId,
+          ...(demoSessionId ? { demoSessionId } : {}),
+        },
       });
       if (!product) {
         return NextResponse.json(
@@ -79,12 +84,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // إنشاء الطلب والحركات المالية والمخزنية داخل transaction
+    // إنشاء الطلب والحركات المالية والمخزنية داخل transaction (مع عزل الجلسة التجريبية)
     const result = await db.$transaction(async (tx) => {
       // 1. إنشاء طلب من نوع POS
       const order = await tx.order.create({
         data: {
           customerId: user.id, // نستخدم المستخدم الحالي كعميل مؤقت (أو يمكن إنشاء عميل عام)
+          demoSessionId,
           totalAmount: validated.totalAmount,
           deliveryFee: 0, // البيع المباشر بدون توصيل
           paymentMethod: validated.paymentMethod,
@@ -115,25 +121,32 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // 2. خصم المخزون
+      // 2. خصم المخزون (مع عزل الجلسة التجريبية)
       for (const item of validated.items) {
         await tx.product.update({
-          where: { id: item.productId },
-          data: { stock: { decrement: item.quantity } },
+          where: {
+            id: item.productId,
+            ...(demoSessionId ? { demoSessionId } : {}),
+          },
+          data: {
+            stock: { decrement: item.quantity },
+            ...(demoSessionId ? { demoSessionId } : {}),
+          },
         });
       }
 
-      // 3. تسجيل حركة مالية (إيراد)
+      // 3. تسجيل حركة مالية (إيراد) مع عزل الجلسة التجريبية
       await tx.transaction.create({
         data: {
           type: "SALE",
           amount: validated.totalAmount,
           description: `بيع مباشر - ${validated.customerName} - طلب #${order.id.slice(-8)}`,
           orderId: order.id,
+          ...(demoSessionId ? { demoSessionId } : {}),
         },
       });
 
-      // 4. تسجيل حركات مخزنية (صرف)
+      // 4. تسجيل حركات مخزنية (صرف) مع عزل الجلسة التجريبية
       for (const item of validated.items) {
         await tx.inventoryTransaction.create({
           data: {
@@ -142,6 +155,7 @@ export async function POST(request: NextRequest) {
             type: "SALE",
             reference: order.id,
             notes: `بيع مباشر للعميل ${validated.customerName}`,
+            ...(demoSessionId ? { demoSessionId } : {}),
           },
         });
       }

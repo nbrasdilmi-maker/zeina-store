@@ -1,15 +1,10 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-    output: "standalone",
-    /* config options here */
+/** @type {import('next').NextConfig} */
+const nextConfig = {
     typescript: {
         ignoreBuildErrors: true,
     },
     reactStrictMode: false,
-
     allowedDevOrigins: ["192.168.0.52", "localhost"],
-    // Allow cross-origin requests for preview
     async headers() {
         return [
             {

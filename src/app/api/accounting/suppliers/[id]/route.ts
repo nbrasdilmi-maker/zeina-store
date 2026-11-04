@@ -28,16 +28,24 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const body = await request.json();
     const validated = updateSupplierSchema.parse(body);
 
-    // التحقق من وجود المورد
+    const demoSessionId = (user as any)?.demoSessionId;
+
+    // التحقق من وجود المورد وأنه ينتمي لجلسة التجريبي الحالية
     const existing = await db.supplier.findUnique({
-      where: { id },
+      where: {
+        id,
+        ...(demoSessionId ? { demoSessionId } : {}),
+      },
     });
 
     if (!existing) {
-      return NextResponse.json({ error: "المورد غير موجود" }, { status: 404 });
+      return NextResponse.json(
+        { error: "المورد غير موجود أو لا ينتمي لجلستك التجريبية" },
+        { status: 404 },
+      );
     }
 
-    // تحديث المورد
+    // تحديث المورد مع عزل الجلسة التجريبية
     const updated = await db.supplier.update({
       where: { id },
       data: {
@@ -50,6 +58,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           contactInfo: validated.contactInfo,
         }),
         ...(validated.notes !== undefined && { notes: validated.notes }),
+        ...(demoSessionId ? { demoSessionId } : {}),
       },
     });
 

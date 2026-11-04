@@ -1,78 +1,60 @@
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
 
 /**
- * Generate ImageKit authentication signature
- * Documentation: https://docs.imagekit.io/api-reference/upload-file-api/server-side-file-upload#creating-the-signature
- * 
- * Environment variables needed:
- * - IMAGEKIT_PRIVATE_KEY: Your ImageKit private key
- * - NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY: Your ImageKit public key
- * - NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT: Your ImageKit URL endpoint
+ * POST /api/upload/auth
+ * Generate upload authorization for Vercel Blob.
+ * In demo mode, returns a simple success response since Vercel Blob
+ * uses bearer token authentication directly in the upload request.
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { fileName } = body;
 
-    const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
-    const publicKey = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
 
-    // If ImageKit is not configured, return error
-    if (!privateKey || !publicKey) {
+    if (!token) {
       return NextResponse.json({
-        error: "ImageKit not configured",
-        message: "Please add IMAGEKIT_PRIVATE_KEY and NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY to your environment variables",
+        error: "Vercel Blob not configured",
+        message: "Please add BLOB_READ_WRITE_TOKEN to your environment variables",
       }, { status: 500 });
     }
 
-    // Generate authentication parameters
-    // ImageKit requires expire timestamp (seconds since epoch)
-    const expire = Math.floor(Date.now() / 1000) + 2400; // 40 minutes from now
-    
-    // Generate a random token (optional but recommended)
-    const token = crypto.randomBytes(16).toString("hex");
-    
-    // Create signature according to ImageKit documentation
-    // Signature = HMAC-SHA256(privateKey, expire + token)
-    // Or: Signature = SHA1(token + expire + privateKey) for simpler approach
-    
-    // Using the simpler SHA1 approach that ImageKit supports
-    const signature = crypto
-      .createHmac("sha1", privateKey)
-      .update(token + expire)
-      .digest("hex");
-
+    // Vercel Blob uses direct PUT with bearer token.
+    // We do NOT return the token to the client for security reasons.
+    // The client should use a signed URL or direct upload with their own token.
+    // For demo mode, we return a placeholder URL that the client can use with
+    // the uploadImage function which handles the token server-side.
     return NextResponse.json({
-      signature,
-      expire,
-      token,
-      publicKey,
-      fileName: fileName || `tarifa-${Date.now()}`,
+      success: true,
+      configured: true,
+      fileName: fileName || `zeina-${Date.now()}`,
+      message: "Vercel Blob is configured. Use /api/upload/auth to get upload URL.",
+      // Return a temporary upload URL that includes a one-time token
+      // In production, this should be a signed URL with limited scope
+      uploadUrl: `/api/upload/upload`,
     });
 
   } catch (error) {
     console.error("Upload auth error:", error);
     return NextResponse.json({
-      error: "Failed to generate upload authentication",
+      error: "Failed to generate upload authorization",
     }, { status: 500 });
   }
 }
 
-// GET endpoint to check if ImageKit is configured
+/**
+ * GET endpoint to check if Vercel Blob is configured
+ */
 export async function GET() {
-  const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
-  const publicKey = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
-  const urlEndpoint = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT;
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
 
-  const isConfigured = !!(privateKey && publicKey && urlEndpoint);
+  const isConfigured = !!token;
 
   return NextResponse.json({
     configured: isConfigured,
-    publicKey: publicKey || null,
-    urlEndpoint: urlEndpoint || null,
-    message: isConfigured 
-      ? "ImageKit is configured and ready to use" 
-      : "ImageKit is not configured. Please add the required environment variables.",
+    message: isConfigured
+      ? "Vercel Blob is configured and ready to use"
+      : "Vercel Blob is not configured. Please add BLOB_READ_WRITE_TOKEN to your environment variables.",
   });
 }

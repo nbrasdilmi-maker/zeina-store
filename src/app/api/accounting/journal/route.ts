@@ -59,7 +59,10 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
 
+    const demoSessionId = (user as any)?.demoSessionId;
+
     const where: any = {};
+    if (demoSessionId) where.demoSessionId = demoSessionId;
     if (type) where.type = type;
     if (startDate && endDate) {
       where.createdAt = {
@@ -142,6 +145,8 @@ export async function POST(request: NextRequest) {
       amount = -amount; // سالب
     }
 
+    const demoSessionId = (user as any)?.demoSessionId;
+
     const transaction = await db.transaction.create({
       data: {
         referenceNumber: validated.referenceNumber || null,
@@ -150,6 +155,7 @@ export async function POST(request: NextRequest) {
         description: validated.description,
         supplierId: validated.supplierId || null,
         orderId: validated.orderId || null,
+        demoSessionId,
       },
       include: {
         supplier: { select: { name: true } },

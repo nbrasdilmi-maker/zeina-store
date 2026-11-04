@@ -293,7 +293,7 @@ ${notes ? `ملاحظات: ${notes}` : ""}`;
             </Sheet>
 
             <Link href="/" className="flex items-center gap-2">
-              <img src="/logo-transparent.jpg" alt="تَرِفَة" className="h-10 w-auto object-contain" />
+              <img src="/zeina-logo-header.png" alt="زينة" className="h-10 w-auto object-contain" />
             </Link>
 
             <Link href="/cart">

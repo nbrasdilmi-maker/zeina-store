@@ -338,9 +338,9 @@ async function main() {
       price: 3500,
       originalPrice: 4500,
       mainImage:
-        "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400",
+        "https://images.unsplash.com/photo-1556228578-0d85b668e970?w=400",
       images: JSON.stringify([
-        "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400",
+        "https://images.unsplash.com/photo-1556228578-0d85b668e970?w=400",
       ]),
       stock: 100,
       categoryId: categories[3].id,

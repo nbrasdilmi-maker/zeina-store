@@ -12,9 +12,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
     }
 
+    const demoSessionId = (user as any)?.demoSessionId;
+
     // 1. إجمالي المبيعات (من الحركات المالية - نوع SALE فقط)
     const salesTransactions = await db.transaction.aggregate({
-      where: { type: "SALE" },
+      where: { ...(demoSessionId ? { demoSessionId } : {}), type: "SALE" },
       _sum: { amount: true },
     });
     const totalSales = salesTransactions._sum.amount || 0;
@@ -22,6 +24,7 @@ export async function GET(request: NextRequest) {
     // 2. إجمالي المصروفات (من الحركات المالية - المصروفات والمشتريات)
     const expenseTransactions = await db.transaction.aggregate({
       where: {
+        ...(demoSessionId ? { demoSessionId } : {}),
         type: { in: ["OPERATING_EXPENSE", "PURCHASE", "SUPPLY"] },
       },
       _sum: { amount: true },
@@ -33,29 +36,33 @@ export async function GET(request: NextRequest) {
 
     // 4. الخسائر (من المرتجعات)
     const returnTransactions = await db.transaction.aggregate({
-      where: { type: "RETURN" },
+      where: { ...(demoSessionId ? { demoSessionId } : {}), type: "RETURN" },
       _sum: { amount: true },
     });
     const totalLoss = Math.abs(returnTransactions._sum.amount || 0);
 
     // 5. عدد المنتجات في المخازن (الإجمالي)
     const totalProducts = await db.product.count({
-      where: { isActive: true },
+      where: { ...(demoSessionId ? { demoSessionId } : {}), isActive: true },
     });
 
     // 6. المنتجات المنخفضة المخزون (أقل من 5 قطع)
     const lowStockProducts = await db.product.count({
       where: {
+        ...(demoSessionId ? { demoSessionId } : {}),
         isActive: true,
         stock: { lt: 5 },
       },
     });
 
     // 7. عدد الموردين (التجار + المناديب الذين أضافوا منتجات)
-    const suppliersCount = await db.supplier.count();
+    const suppliersCount = await db.supplier.count({
+      ...(demoSessionId ? { where: { demoSessionId } } : {}),
+    });
 
     // 8. آخر 5 حركات مالية
     const recentTransactions = await db.transaction.findMany({
+      ...(demoSessionId ? { where: { demoSessionId } } : {}),
       take: 5,
       orderBy: { createdAt: "desc" },
       include: {
@@ -66,7 +73,7 @@ export async function GET(request: NextRequest) {
 
     // 9. قيمة المخزون (مجموع (سعر التكلفة × الكمية) للمنتجات)
     const products = await db.product.findMany({
-      where: { isActive: true },
+      where: { ...(demoSessionId ? { demoSessionId } : {}), isActive: true },
       select: { costPrice: true, stock: true },
     });
     const inventoryValue = products.reduce((total, p) => {

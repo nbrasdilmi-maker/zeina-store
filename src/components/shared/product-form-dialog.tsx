@@ -37,6 +37,7 @@ import {
   Tag,
   Palette,
   Package,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { uploadImage } from "@/lib/upload";
@@ -120,6 +121,7 @@ export function ProductFormDialog({
   });
 
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [selectedColors, setSelectedColors] = useState<any[]>([]);
@@ -353,7 +355,90 @@ export function ProductFormDialog({
       setImagePreview(currentImages[0] || null);
     } catch {}
   };
+  const handleAIGenerate = async () => {
+    if (!form.mainImage) {
+      toast({
+        title: "تنبيه",
+        description: "يرجى رفع صورة رئيسية للمنتج أولاً",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!form.categoryId) {
+      toast({
+        title: "تنبيه",
+        description: "يرجى اختيار التصنيف أولاً لمساعدة الذكاء الاصطناعي",
+        variant: "destructive",
+      });
+      return;
+    }
 
+    setIsGeneratingAI(true);
+    try {
+      const selectedCategory = categories.find((c) => c.id === form.categoryId);
+      const token = localStorage.getItem("token"); // ✅ جلب التوكن
+
+      let imageBase64 = form.mainImage;
+      if (!imageBase64.startsWith("data:")) {
+        const response = await fetch(imageBase64);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        imageBase64 = await new Promise((resolve) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      const res = await fetch("/api/ai/generate-product-details", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }), // ✅ هيدر التوكن
+        },
+        body: JSON.stringify({
+          imageUrl: form.mainImage,
+          categoryNameAr: selectedCategory?.nameAr || "",
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.error || "فشل التوليد");
+      }
+
+      const aiData = data.data;
+
+      setForm((prev) => ({
+        ...prev,
+        nameAr: aiData.nameAr || prev.nameAr,
+        name: aiData.nameEn || prev.name,
+        descriptionAr: aiData.descriptionAr || prev.descriptionAr,
+        description: aiData.descriptionEn || prev.description,
+        featuresAr: aiData.featuresAr || prev.featuresAr,
+        usageAr: aiData.usageAr || prev.usageAr,
+        price: aiData.priceEstimate
+          ? aiData.priceEstimate.toString()
+          : prev.price,
+      }));
+
+      toast({
+        title: "تم بنجاح",
+        description:
+          "تم ملء الحقول بالبيانات المقترحة. يمكنك التعديل قبل الحفظ.",
+      });
+    } catch (error: any) {
+      console.error("AI generation error:", error);
+      toast({
+        title: "خطأ",
+        description: error.message || "فشل الاتصال بالذكاء الاصطناعي",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
   const handleSave = async () => {
     if (!form.name || !form.nameAr || !form.price || !form.mainImage) {
       toast({
@@ -468,6 +553,20 @@ export function ProductFormDialog({
                   رفع صور
                 </Button>
               </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleAIGenerate}
+                disabled={isGeneratingAI || !form.mainImage || !form.categoryId}
+                className={`h-12 px-6 text-base font-medium border-2 border-[#C9A962] bg-gradient-to-r from-[#C9A962]/10 to-[#B8956E]/10 text-[#8B7355] hover:bg-[#C9A962] hover:text-white transition-all ${!form.mainImage || !form.categoryId ? "opacity-50" : ""}`}
+              >
+                {isGeneratingAI ? (
+                  <RefreshCw className="h-5 w-5 animate-spin ml-2" />
+                ) : (
+                  <Sparkles className="h-5 w-5 ml-2" />
+                )}
+                إنشاء بالذكاء
+              </Button>
 
               {!form.categoryId && (
                 <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg flex items-center gap-2">

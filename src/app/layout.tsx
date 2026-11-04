@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Tajawal, Amiri } from "next/font/google";
+import { localFont } from "next/font/local";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { CartProvider } from "@/contexts/cart-context";
@@ -8,16 +8,29 @@ import { PusherListener } from "@/components/shared/pusher-listener";
 import { SWRegistration } from "@/components/shared/sw-registration";
 import { AccountingProvider } from "@/contexts/accounting-context";
 
-const tajawal = Tajawal({
+const tajawal = localFont({
+  src: [
+    { path: "../fonts/Tajawal/Tajawal-ExtraLight.ttf", weight: "200", style: "normal" },
+    { path: "../fonts/Tajawal/Tajawal-Light.ttf", weight: "300", style: "normal" },
+    { path: "../fonts/Tajawal/Tajawal-Regular.ttf", weight: "400", style: "normal" },
+    { path: "../fonts/Tajawal/Tajawal-Medium.ttf", weight: "500", style: "normal" },
+    { path: "../fonts/Tajawal/Tajawal-Bold.ttf", weight: "700", style: "normal" },
+    { path: "../fonts/Tajawal/Tajawal-ExtraBold.ttf", weight: "800", style: "normal" },
+    { path: "../fonts/Tajawal/Tajawal-Black.ttf", weight: "900", style: "normal" },
+  ],
   variable: "--font-tajawal",
-  subsets: ["arabic", "latin"],
-  weight: ["300", "400", "500", "700", "800", "900"],
+  display: "swap",
 });
 
-const amiri = Amiri({
+const amiri = localFont({
+  src: [
+    { path: "../fonts/Amiri-Regular.ttf", weight: "400", style: "normal" },
+    { path: "../fonts/Amiri-Bold.ttf", weight: "700", style: "normal" },
+    { path: "../fonts/Amiri-Italic.ttf", weight: "400", style: "italic" },
+    { path: "../fonts/Amiri-BoldItalic.ttf", weight: "700", style: "italic" },
+  ],
   variable: "--font-amiri",
-  subsets: ["arabic", "latin"],
-  weight: ["400", "700"],
+  display: "swap",
 });
 
 export const viewport: Viewport = {
@@ -30,21 +43,36 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "تَرِفَة | متجر الأناقة والجمال",
+  title: "زينة | متجر الأناقة والجمال",
   description:
-    "متجر تَرِفَة - وجهتك الأولى للأكسسوارات وأدوات التجميل والعطور الفاخرة في اليمن",
+    "متجر زينة - وجهتك الأولى للأكسسوارات وأدوات التجميل والعطور الفاخرة في اليمن",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "تَرِفَة",
+    title: "زينة",
   },
   formatDetection: {
     telephone: false,
   },
   icons: {
-    icon: "/favicon.png",
-    apple: "/favicon.png",
+    icon: "/favicon-32x32.png",
+    shortcut: "/favicon-16x16.png",
+    apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    images: [
+      {
+        url: "/zeina-logo-header.png",
+        width: 2172,
+        height: 724,
+        alt: "زينة - متجر الأناقة والجمال",
+      },
+    ],
+  },
+  twitter: {
+    images: ["/zeina-logo-header.png"],
+    card: "summary_large_image",
   },
 };
 

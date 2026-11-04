@@ -56,7 +56,7 @@ export default function CategoriesPage() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <Link href="/">
-              <img src="/logo.png" alt="تَرِفَة" className="h-10 w-auto object-contain" />
+              <img src="/zeina-logo-header.png" alt="زينة" className="h-10 w-auto object-contain" />
             </Link>
             <nav className="hidden md:flex items-center gap-6">
               <Link href="/" className="font-medium hover:text-[var(--gold)] transition-colors">
@@ -164,8 +164,8 @@ export default function CategoriesPage() {
       {/* Footer */}
       <footer className="bg-[#1A1A1A] text-white py-8 mt-16">
         <div className="container mx-auto px-4 text-center">
-          <img src="/logo.png" alt="تَرِفَة" className="h-12 w-auto mx-auto mb-4 object-contain" />
-          <p className="text-gray-400">© {new Date().getFullYear()} تَرِفَة. جميع الحقوق محفوظة.</p>
+          <img src="/zeina-logo-footer.png" alt="زينة" className="h-12 w-auto mx-auto mb-4 object-contain" />
+          <p className="text-gray-400">© {new Date().getFullYear()} زينة. جميع الحقوق محفوظة.</p>
         </div>
       </footer>
     </div>

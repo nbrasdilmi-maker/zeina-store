@@ -2,34 +2,27 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { pusherServer } from "@/lib/pusher";
 import { sendNotificationToUser } from "@/lib/notifications";
-import { verifyToken } from "@/lib/security";
+import { verifyAuth } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 // --- 1. إرسال رسالة جديدة (آمنة تماماً) ---
 export async function POST(request: NextRequest) {
   try {
-    // التحقق من الهوية عبر التوكن
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    // التحقق من الهوية عبر verifyAuth (يدعم جلسات التجريبي)
+    const user = await verifyAuth(request);
+    if (!user) {
       return NextResponse.json(
         { error: "غير مصرح: يرجى تسجيل الدخول" },
         { status: 401 },
       );
     }
 
-    const token = authHeader.substring(7);
-    const verification = verifyToken(token);
-
-    if (!verification.valid || !verification.payload) {
-      return NextResponse.json({ error: "جلسة منتهية" }, { status: 401 });
-    }
-
-    // الهوية الحقيقية المستخرجة من التوكن
-    const authenticatedUserId = verification.payload.userId;
+    const authenticatedUserId = (user as any).id;
+    const demoSessionId = (user as any)?.demoSessionId;
 
     const body = await request.json();
-    const { conversationId, content, productImage, socketId } = body; // ✅ أضفنا socketId هنا
+    const { conversationId, content, productImage, socketId } = body;
 
     if (!conversationId || !content) {
       return NextResponse.json(
@@ -38,13 +31,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // التحقق من أن المحادثة تنتمي لجلسة التجريبي الحالية
+    const conversationCheck = await db.conversation.findUnique({
+      where: { id: conversationId },
+      select: { demoSessionId: true, customerId: true, agentId: true },
+    });
+
+    if (!conversationCheck) {
+      return NextResponse.json(
+        { error: "المحادثة غير موجودة" },
+        { status: 404 },
+      );
+    }
+
+    if (demoSessionId && conversationCheck.demoSessionId !== demoSessionId) {
+      return NextResponse.json(
+        { error: "غير مسموح لك بإرسال رسائل في هذه المحادثة" },
+        { status: 403 },
+      );
+    }
+
     // إنشاء الرسالة باستخدام الـ ID الموثق من التوكن
     const message = await db.message.create({
       data: {
         conversationId,
-        senderId: authenticatedUserId, // حماية: نستخدم المعرف الموثق
+        senderId: authenticatedUserId,
         content,
         productImage,
+        ...(demoSessionId ? { demoSessionId } : {}),
       },
       include: {
         sender: {
@@ -63,13 +77,15 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // ✅ تفعيل اللحظية عبر Pusher بذكاء لمنع التكرار (تجاهل جهاز المرسل)
-    if (socketId) {
-      await pusherServer.trigger(conversationId, "new-message", message, {
-        socket_id: socketId,
-      });
-    } else {
-      await pusherServer.trigger(conversationId, "new-message", message);
+    // ✅ تفعيل اللحظية عبر Pusher (معطل في وضع التجريبي)
+    if (pusherServer) {
+      if (socketId) {
+        await pusherServer.trigger(conversationId, "new-message", message, {
+          socket_id: socketId,
+        });
+      } else {
+        await pusherServer.trigger(conversationId, "new-message", message);
+      }
     }
 
     // تحديد المستلم لإرسال إشعار
@@ -102,6 +118,13 @@ export async function POST(request: NextRequest) {
 // --- 2. جلب رسائل المحادثة (آمنة) ---
 export async function GET(request: NextRequest) {
   try {
+    const user = await verifyAuth(request);
+    if (!user) {
+      return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+    }
+
+    const demoSessionId = (user as any)?.demoSessionId;
+
     const { searchParams } = new URL(request.url);
     const conversationId = searchParams.get("conversationId");
 
@@ -112,33 +135,31 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // حماية إضافية: التحقق من أن المستخدم طرف في هذه المحادثة (اختياري ولكن فخم)
-    const authHeader = request.headers.get("authorization");
-    if (authHeader) {
-      const token = authHeader.substring(7);
-      const verification = verifyToken(token);
+    // التحقق من أن المحادثة تنتمي لجلسة التجريبي الحالية
+    const conversation = await db.conversation.findUnique({
+      where: { id: conversationId },
+      select: { demoSessionId: true },
+    });
 
-      if (verification.valid && verification.payload) {
-        const userId = verification.payload.userId;
-        const userRole = verification.payload.role;
+    if (!conversation) {
+      return NextResponse.json(
+        { error: "المحادثة غير موجودة" },
+        { status: 404 },
+      );
+    }
 
-        // إذا لم يكن أدمن، نتأكد أنه طرف في المحادثة
-        if (userRole !== "ADMIN") {
-          const conv = await db.conversation.findUnique({
-            where: { id: conversationId },
-          });
-          if (conv && conv.customerId !== userId && conv.agentId !== userId) {
-            return NextResponse.json(
-              { error: "غير مصرح لك برؤية هذه الرسائل" },
-              { status: 403 },
-            );
-          }
-        }
-      }
+    if (demoSessionId && conversation.demoSessionId !== demoSessionId) {
+      return NextResponse.json(
+        { error: "غير مسموح لك برؤية رسائل هذه المحادثة" },
+        { status: 403 },
+      );
     }
 
     const messages = await db.message.findMany({
-      where: { conversationId },
+      where: {
+        conversationId,
+        ...(demoSessionId ? { demoSessionId } : {}),
+      },
       include: {
         sender: {
           select: { id: true, name: true, role: true },
@@ -154,21 +175,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "فشل في جلب الرسائل" }, { status: 500 });
   }
 }
+
 // --- 3. حذف رسالة محددة (جديد) ---
 export async function DELETE(request: NextRequest) {
   try {
-    // 1. التحقق من الهوية
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    const user = await verifyAuth(request);
+    if (!user) {
       return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
     }
-    const token = authHeader.substring(7);
-    const verification = verifyToken(token);
-    if (!verification.valid || !verification.payload) {
-      return NextResponse.json({ error: "جلسة منتهية" }, { status: 401 });
-    }
 
-    // 2. جلب رقم الرسالة المراد حذفها
+    const demoSessionId = (user as any)?.demoSessionId;
+
     const { searchParams } = new URL(request.url);
     const messageId = searchParams.get("id");
 
@@ -176,19 +193,30 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "رقم الرسالة مطلوب" }, { status: 400 });
     }
 
-    // 3. جلب بيانات الرسالة لمعرفة المحادثة الخاصة بها (لنرسل تحديثاً للطرف الآخر)
+    // جلب بيانات الرسالة للتحقق من المحادثة والجلسة
     const messageToDelete = await db.message.findUnique({
       where: { id: messageId },
-      select: { conversationId: true },
+      select: { conversationId: true, demoSessionId: true },
     });
 
-    // 4. حذف الرسالة من قاعدة البيانات
+    if (!messageToDelete) {
+      return NextResponse.json({ error: "الرسالة غير موجودة" }, { status: 404 });
+    }
+
+    if (demoSessionId && messageToDelete.demoSessionId !== demoSessionId) {
+      return NextResponse.json(
+        { error: "غير مسموح لك بحذف هذه الرسالة" },
+        { status: 403 },
+      );
+    }
+
+    // حذف الرسالة من قاعدة البيانات
     await db.message.delete({
       where: { id: messageId },
     });
 
-    // 5. إرسال تنبيه عبر Pusher للطرف الآخر لكي تختفي الرسالة من شاشته فوراً (تحديث لحظي)
-    if (messageToDelete) {
+    // إرسال تنبيه عبر Pusher للطرف الآخر (معطل في وضع التجريبي)
+    if (messageToDelete && pusherServer) {
       await pusherServer.trigger(
         messageToDelete.conversationId,
         "message-deleted",

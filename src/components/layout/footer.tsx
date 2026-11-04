@@ -28,8 +28,8 @@ export function Footer() {
           <div className="lg:col-span-1">
             <div className="mb-6">
               <img
-                src="/logo.png"
-                alt="تَرِفَة"
+                src="/zeina-logo-footer.png"
+                alt="زينة"
                 className="h-20 w-auto object-contain"
               />
             </div>
@@ -192,12 +192,10 @@ export function Footer() {
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-white/40 text-sm">
-              © {currentYear} تَرِفَة. جميع الحقوق محفوظة.
+              © {currentYear} زينة. جميع الحقوق محفوظة.
             </p>
             <p className="text-white/40 text-sm flex items-center gap-1">
-              صُنع بـ
-              <Heart className="h-4 w-4 text-rose-500 fill-rose-500 animate-pulse" />
-              في اليمن
+              تطوير : محمد ابراهيم الديلمي |776668662
             </p>
           </div>
         </div>

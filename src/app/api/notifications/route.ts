@@ -27,12 +27,19 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        // 2. جلب الإشعارات من قاعدة البيانات (Supabase via Prisma)
-        // سنقوم بجلب الإشعارات الخاصة بهذا المستخدم فقطuserId
+        // 2. جلب الإشعارات من قاعدة البيانات
+        // تصفية حسب المستخدم والجلسة التجريبية لعزل البيانات
+        const demoSessionId = (user as any)?.demoSessionId;
+        const where: Record<string, unknown> = {
+            userId: user.id, // شرط: أن يكون الإشعار تابع للمستخدم المسجل حالياً
+        };
+
+        if (demoSessionId) {
+          where.demoSessionId = demoSessionId;
+        }
+
         const notifications = await db.notification.findMany({
-            where: {
-                userId: user.id, // شرط: أن يكون الإشعار تابع للمستخدم المسجل حالياً
-            },
+            where,
             orderBy: {
                 createdAt: "desc", // الترتيب: من الأحدث إلى الأقدم
             },

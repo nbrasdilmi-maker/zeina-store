@@ -21,15 +21,18 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const status = searchParams.get("status"); // pending, approved, all
 
+        const demoSessionId = (user as any)?.demoSessionId;
+
         // Build filter
-        const where: { isApproved?: boolean } = {};
+        const where: { isApproved?: boolean; demoSessionId?: string } = {};
+        if (demoSessionId) where.demoSessionId = demoSessionId;
         if (status === "pending") {
             where.isApproved = false;
         } else if (status === "approved") {
             where.isApproved = true;
         }
 
-        // Get merchants with user data
+        // Get merchants with user data (isolated by demo session)
         const merchants = await db.merchant.findMany({
             where,
             include: {
@@ -48,13 +51,13 @@ export async function GET(request: NextRequest) {
             orderBy: { createdAt: "desc" },
         });
 
-        // Get stats
-        const totalCount = await db.merchant.count();
+        // Get stats (isolated by demo session)
+        const totalCount = await db.merchant.count({ where });
         const pendingCount = await db.merchant.count({
-            where: { isApproved: false },
+            where: { ...where, isApproved: false },
         });
         const approvedCount = await db.merchant.count({
-            where: { isApproved: true },
+            where: { ...where, isApproved: true },
         });
 
         return NextResponse.json({

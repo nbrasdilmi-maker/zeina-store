@@ -161,7 +161,7 @@ export function AdsManager() {
             <div className="grid grid-cols-1 gap-3">
                 {/* العنوان الفرعي - Subtitle */}
                 <div className="space-y-1">
-                    <Label className="text-xs font-bold">العنوان الفرعي (مثل: تَرِفَة)</Label>
+                    <Label className="text-xs font-bold">العنوان الفرعي (مثل: زينة)</Label>
                     <Input placeholder="أدخل النص الصغير العلوي" value={formData.subtitleAr} onChange={e => setFormData({ ...formData, subtitleAr: e.target.value })} />
                 </div>
 

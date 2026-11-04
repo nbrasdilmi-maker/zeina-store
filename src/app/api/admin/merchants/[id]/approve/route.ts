@@ -78,7 +78,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             type: approved ? "MERCHANT_APPROVED" : "SYSTEM",
             title: approved ? "تم تفعيل حسابك 🎉" : "تحديث بخصوص طلبك ⚠️",
             message: approved
-                ? "مبروك! تمت الموافقة على طلبك كتاجر في تَرِفَة. يمكنك الآن إضافة منتجاتك والبدء في البيع."
+                ? "مبروك! تمت الموافقة على طلبك كتاجر في زينة. يمكنك الآن إضافة منتجاتك والبدء في البيع."
                 : "نأسف، تم رفض طلب التسجيل كتاجر. يرجى التواصل مع الإدارة للمزيد من التفاصيل.",
             data: { merchantId: id }
         });

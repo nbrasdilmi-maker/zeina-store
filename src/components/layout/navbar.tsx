@@ -105,7 +105,7 @@ export function Navbar({
         <div className="container mx-auto px-4 flex items-center justify-center gap-2">
           <Sparkles className="h-3 w-3 text-[#C9A962]" />
           <span className="text-white/90 font-medium tracking-wide">
-            ✨ تَرِفَة .. وجهتكِ الأولى للأناقة والجمال ✨
+            ✨ زينة .. وجهتكِ الأولى للأناقة والجمال ✨
           </span>
           <Sparkles className="h-3 w-3 text-[#C9A962]" />
         </div>
@@ -129,8 +129,8 @@ export function Navbar({
                 {/* رأس القائمة */}
                 <div className="flex items-center justify-between p-4 pb-2 border-b border-[#FAF7F2]">
                   <img
-                    src="/logo-transparent.jpg"
-                    alt="تَرِفَة"
+                    src="/zeina-logo-header.png"
+                    alt="زينة"
                     className="h-10 w-auto object-contain"
                   />
                   <Button
@@ -291,8 +291,8 @@ export function Navbar({
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group shrink-0">
             <motion.img
-              src="/logo-transparent.jpg"
-              alt="تَرِفَة"
+              src="/zeina-logo-header.png"
+              alt="زينة"
               className="h-10 md:h-14 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
               whileHover={{ scale: 1.05 }}
             />

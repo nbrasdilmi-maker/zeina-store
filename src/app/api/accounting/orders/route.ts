@@ -14,8 +14,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
     }
 
-    // جلب الطلبات مع جميع التفاصيل المطلوبة
+    const demoSessionId = (user as any)?.demoSessionId;
+
+    // جلب الطلبات مع جميع التفاصيل المطلوبة (معزولة حسب الجلسة التجريبية)
     const orders = await db.order.findMany({
+      ...(demoSessionId ? { where: { demoSessionId } } : {}),
       include: {
         customer: {
           select: {

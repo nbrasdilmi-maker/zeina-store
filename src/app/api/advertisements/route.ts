@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { verifyAuth } from "@/lib/auth";
 
-// 1. جلب جميع الإعلانات الترويجية لعرضها
-export async function GET() {
+// 1. جلب جميع الإعلانات الترويجية (مع عزل الجلسة التجريبية)
+export async function GET(request: NextRequest) {
     try {
+        const user = await verifyAuth(request);
+        const demoSessionId = (user as any)?.demoSessionId;
+
+        const where: Record<string, unknown> = {};
+        if (demoSessionId) {
+            where.demoSessionId = demoSessionId;
+        }
+
         const ads = await db.advertisement.findMany({
-            orderBy: { createdAt: 'desc' } // الأحدث يظهر أولاً
+            where,
+            orderBy: { createdAt: 'desc' }
         });
         return NextResponse.json({ advertisements: ads });
     } catch (error) {
@@ -17,6 +27,14 @@ export async function GET() {
 // 2. إضافة إعلان ترويجي جديد
 export async function POST(req: NextRequest) {
     try {
+        const user = await verifyAuth(req);
+        if (!user) {
+            return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+        }
+
+        const decoded = user as any;
+        const demoSessionId = decoded.demoSessionId;
+
         const body = await req.json();
 
         const ad = await db.advertisement.create({
@@ -25,11 +43,12 @@ export async function POST(req: NextRequest) {
                 titleAr: body.titleAr || "",
                 description: body.description,
                 descriptionAr: body.descriptionAr,
-                price: body.price ? parseFloat(body.price) : null, // 👈 الحقل الجديد (السعر)
+                price: body.price ? parseFloat(body.price) : null,
                 image: body.image,
                 link: body.link,
-                ctaAr: body.ctaAr,                                 // 👈 الحقل الجديد (نص الزر)
+                ctaAr: body.ctaAr,
                 isActive: body.isActive ?? true,
+                demoSessionId,
             }
         });
 
@@ -43,11 +62,32 @@ export async function POST(req: NextRequest) {
 // 3. حذف إعلان نهائياً
 export async function DELETE(req: NextRequest) {
     try {
+        const user = await verifyAuth(req);
+        if (!user) {
+            return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+        }
+
+        const decoded = user as any;
+        const demoSessionId = decoded.demoSessionId;
+
         const { searchParams } = new URL(req.url);
         const id = searchParams.get("id");
 
         if (!id) {
             return NextResponse.json({ error: "معرف الإعلان مطلوب" }, { status: 400 });
+        }
+
+        const existing = await db.advertisement.findUnique({
+            where: { id },
+            select: { demoSessionId: true },
+        });
+
+        if (!existing) {
+            return NextResponse.json({ error: "الإعلان غير موجود" }, { status: 404 });
+        }
+
+        if (demoSessionId && existing.demoSessionId !== demoSessionId) {
+            return NextResponse.json({ error: "غير مسموح لك بحذف هذا الإعلان" }, { status: 403 });
         }
 
         await db.advertisement.delete({

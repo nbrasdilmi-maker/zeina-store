@@ -12,8 +12,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
     }
 
-    // جلب جميع الموردين من جدول Supplier
+    const demoSessionId = (user as any)?.demoSessionId;
+
+    // جلب جميع الموردين من جدول Supplier (معزولة حسب الجلسة التجريبية)
     const suppliers = await db.supplier.findMany({
+      where: { ...(demoSessionId ? { demoSessionId } : {}) },
       include: {
         user: {
           select: { id: true, email: true, phone: true, role: true },
@@ -33,9 +36,12 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    // إحصائيات إضافية
-    const totalSuppliers = await db.supplier.count();
+    // إحصائيات إضافية (معزولة حسب الجلسة التجريبية)
+    const totalSuppliers = await db.supplier.count({
+      where: { ...(demoSessionId ? { demoSessionId } : {}) },
+    });
     const merchants = await db.merchant.findMany({
+      where: { ...(demoSessionId ? { demoSessionId } : {}) },
       select: { commissionAmount: true, totalSales: true },
     });
 
@@ -101,20 +107,25 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, contactInfo, notes, commission, userId } = body;
 
+    const demoSessionId = (user as any)?.demoSessionId;
+
     if (!name) {
       return NextResponse.json({ error: "اسم المورد مطلوب" }, { status: 400 });
     }
 
-    // إذا تم إرسال userId، نتحقق من وجود المستخدم ونوعه
+    // إذا تم إرسال userId، نتحقق من وجود المستخدم ونوعه وأنه ينتمي لجلسة التجريبي الحالية
     let type: "MERCHANT" | "AGENT" | "ADMIN" = "MERCHANT";
     let finalUserId = userId;
     if (userId) {
       const existingUser = await db.user.findUnique({
-        where: { id: userId },
+        where: {
+          id: userId,
+          ...(demoSessionId ? { demoSessionId } : {}),
+        },
       });
       if (!existingUser) {
         return NextResponse.json(
-          { error: "المستخدم غير موجود" },
+          { error: "المستخدم غير موجود أو لا ينتمي لجلستك التجريبية" },
           { status: 400 },
         );
       }
@@ -142,6 +153,7 @@ export async function POST(request: NextRequest) {
         contactInfo: contactInfo || null,
         notes: notes || null,
         userId: finalUserId,
+        ...(demoSessionId ? { demoSessionId } : {}),
       },
     });
 

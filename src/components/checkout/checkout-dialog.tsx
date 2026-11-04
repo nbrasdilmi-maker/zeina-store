@@ -273,7 +273,7 @@ export function CheckoutDialog({
                     ? `🔹 طريقة الدفع: حوالة\n🔢 رقم الحوالة: ${transferNumber}`
                     : `🔹 طريقة الدفع: محفظة (${selectedWallet === 'jeib' ? 'جيب' : selectedWallet === 'kash' ? 'كاش' : 'جوالي'})\n🖼️ إثبات الدفع: ${paymentProof}`;
 
-                const autoMessage = `*طلب جديد من متجر تَرِفَة* 🛒\n\n` +
+                const autoMessage = `*طلب جديد من متجر زينة* 🛒\n\n` +
                     `👤 *بيانات العميل:*\n` +
                     `• الاسم: ${customerName}\n` +
                     `• الهاتف: ${phone}\n` +
@@ -330,7 +330,7 @@ export function CheckoutDialog({
             : `🔹 طريقة الدفع: محفظة (${selectedWallet === 'jeib' ? 'جيب' : selectedWallet === 'kash' ? 'كاش' : 'جوالي'})\n🖼️ رابط إثبات الدفع (ImageKit): ${paymentProof}`;
 
         // 3. بناء الرسالة "الحنان الطنان" المتكاملة
-        const message = `*طلب جديد من متجر تَرِفَة* 🛒
+        const message = `*طلب جديد من متجر زينة* 🛒
 
 👤 *بيانات العميل:*
 • الاسم: ${customerName}
@@ -399,7 +399,7 @@ export function CheckoutDialog({
                             <div className="bg-gradient-to-r from-[#FDFBF7] to-[#F9F6ED] border border-[#C9A962]/30 rounded-xl p-4 text-center shadow-sm relative overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#C9A962] to-transparent opacity-70"></div>
                                 <h3 className="text-lg font-black text-[#3D3021] mb-1 flex items-center justify-center gap-2">
-                                    ✨ أهلاً بكِ في تَرِفَة ✨
+                                    ✨ أهلاً بكِ في زينة ✨
                                 </h3>
                                 <p className="text-xs sm:text-sm text-[#8B7355] font-medium leading-relaxed">
                                     أنتِ على بُعد خطوة واحدة من إتمام أناقتك.. <br />

@@ -177,6 +177,56 @@
     );
   }
 
+  /* ======================================================== */
+  /* === بداية إضافات التصميم المستقبلي (الزجاج والنيون) === */
+  /* ======================================================== */
+
+  /* 1. تأثير الزجاج الداكن للبطاقات (Dark Glassmorphism) */
+  .glass-dark {
+    background: rgba(26, 26, 26, 0.4); /* خلفية داكنة شبه شفافة */
+    backdrop-filter: blur(12px); /* درجة الضبابية للخلفية */
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05); /* حد شفاف جداً يعطي لمعة زجاجية */
+  }
+
+  /* 2. إضاءة نيون زرقاء (مستوحاة من الفيديو للواجهة المستقبلية) */
+  .neon-blue-glow {
+    box-shadow:
+      0 0 10px rgba(0, 195, 255, 0.3),
+      0 0 20px rgba(0, 195, 255, 0.1);
+    border: 1px solid rgba(0, 195, 255, 0.4);
+  }
+
+  /* 3. إضاءة نيون ذهبية (للحفاظ على هوية متجر ترفه الفاخرة) */
+  .neon-gold-glow {
+    box-shadow:
+      0 0 10px rgba(201, 169, 98, 0.3),
+      0 0 20px rgba(201, 169, 98, 0.1);
+    border: 1px solid rgba(201, 169, 98, 0.4);
+  }
+
+  /* 4. خلفية شبكية مستقبلية (Grid Background) لإضافتها خلف الأقسام */
+  .bg-grid-pattern {
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px; /* حجم مربعات الشبكة */
+  }
+
+  /* 5. تأثير توهج للأزرار عند تمرير الماوس (Hover) */
+  .hover-neon-effect {
+    transition: all 0.3s ease-in-out;
+  }
+  .hover-neon-effect:hover {
+    box-shadow:
+      0 0 15px var(--gold),
+      0 0 30px rgba(201, 169, 98, 0.5);
+  }
+
+  /* ======================================================== */
+  /* === نهاية إضافات التصميم المستقبلي ===================== */
+  /* ======================================================== */
+
   /* Shimmer Animation for Luxury Effect */
   .shimmer {
     background: linear-gradient(

@@ -299,7 +299,7 @@ export default function AccountingPOSPage() {
       </head>
       <body>
         <div class="receipt">
-          <h2>تَرِفَة</h2>
+          <h2>زينة</h2>
           <div class="sub">إيصال بيع مباشر</div>
           <div class="row"><span>رقم العملية:</span><span>#${completedOrder.id.slice(-8)}</span></div>
           <div class="row"><span>التاريخ:</span><span>${new Date(completedOrder.createdAt).toLocaleDateString("ar-YE")}</span></div>
@@ -321,7 +321,7 @@ export default function AccountingPOSPage() {
             <span>${formatCurrency(completedOrder.totalAmount)}</span>
           </div>
           <div class="row"><span>طريقة الدفع:</span><span>${paymentMethod === "cash" ? "نقدي" : paymentMethod === "transfer" ? "حوالة" : "محفظة"}</span></div>
-          <div class="footer">شكراً لتسوقك من تَرِفَة</div>
+          <div class="footer">شكراً لتسوقك من زينة</div>
         </div>
       </body>
       </html>

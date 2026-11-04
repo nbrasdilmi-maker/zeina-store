@@ -98,7 +98,7 @@ export default function AboutPage() {
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-16"
           >
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">عن متجر تَرِفَة</h1>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">عن متجر زينة</h1>
             <p className="text-xl text-[var(--muted-foreground)] max-w-2xl mx-auto">
               وجهتك الأولى للأكسسوارات وأدوات التجميل والعطور الفاخرة في اليمن
             </p>
@@ -125,7 +125,7 @@ export default function AboutPage() {
             >
               <h2 className="text-3xl font-bold mb-4">قصتنا</h2>
               <p className="text-gray-600 leading-relaxed mb-4">
-                بدأت تَرِفَة كحلم بسيط: تقديم منتجات تجميل وعطور فاخرة للمرأة اليمنية بأسعار مناسبة وجودة عالية.
+                بدأت زينة كحلم بسيط: تقديم منتجات تجميل وعطور فاخرة للمرأة اليمنية بأسعار مناسبة وجودة عالية.
               </p>
               <p className="text-gray-600 leading-relaxed">
                 نحن نؤمن بأن كل امرأة تستحق أن تشعر بالجمال والأناقة، ولهذا نسعى دائماً لتوفير أفضل المنتجات من أشهر الماركات العالمية.

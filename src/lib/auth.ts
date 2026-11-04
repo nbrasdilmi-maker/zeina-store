@@ -17,6 +17,7 @@ import {
   logSecurityEvent,
   sanitizeInput,
 } from "./security";
+import { verifyDemoSession } from "./demo-session";
 
 // Re-export for backward compatibility
 export const generateVerificationCode = secureGenerateCode;
@@ -152,12 +153,34 @@ export async function verifyAuth(req: Request) {
     try {
         const result = verifyToken(token);
 
-        if (!result.valid || !result.payload || !result.payload.userId) {
+        if (!result.valid || !result.payload) {
+            return null;
+        }
+
+        const payload = result.payload as any;
+
+        // Demo session verification
+        if (payload.isDemo) {
+            const demoSession = await verifyDemoSession(token);
+            if (!demoSession) {
+                return null;
+            }
+            return {
+                id: demoSession.userId,
+                email: payload.email,
+                role: demoSession.role,
+                isDemo: true,
+                demoSessionId: demoSession.sessionId,
+            };
+        }
+
+        // Regular session verification
+        if (!payload.userId) {
             return null;
         }
 
         const user = await db.user.findUnique({
-            where: { id: result.payload.userId },
+            where: { id: payload.userId },
             select: { id: true, email: true, role: true }
         });
 
@@ -165,4 +188,18 @@ export async function verifyAuth(req: Request) {
     } catch (error) {
         return null;
     }
+}
+
+/**
+ * Verify demo session from request
+ */
+export async function verifyDemoAuth(req: Request) {
+    const authHeader = req.headers.get("authorization");
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return null;
+    }
+
+    const token = authHeader.split(" ")[1];
+    return verifyDemoSession(token);
 }

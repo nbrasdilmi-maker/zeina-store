@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
 
-// 1. جلب التعليقات (للزوار والجميع)
+// 1. جلب التعليقات (مع عزل الجلسة التجريبية)
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
@@ -12,8 +12,16 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "معرف المنتج مطلوب" }, { status: 400 });
         }
 
+        const user = await verifyAuth(request);
+        const demoSessionId = (user as any)?.demoSessionId;
+
+        const where: Record<string, unknown> = { productId, isActive: true };
+        if (demoSessionId) {
+          where.demoSessionId = demoSessionId;
+        }
+
         const reviews = await db.review.findMany({
-            where: { productId, isActive: true },
+            where,
             include: {
                 user: { select: { name: true } }
             },
@@ -26,16 +34,36 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// 2. إضافة تقييم وإرسال إشعارات مفصلة
+// 2. إضافة تقييم (مع التحقق من الجلسة التجريبية)
 export async function POST(request: NextRequest) {
     try {
+        const user = await verifyAuth(request);
+        if (!user) {
+            return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+        }
+
+        const decoded = user as any;
+        const demoSessionId = decoded.demoSessionId;
+
         const body = await request.json();
         const { productId, userId, rating, comment } = body;
+
+        // التحقق من أن المستخدم ينتمي للجلسة التجريبية
+        if (demoSessionId) {
+            const reviewUser = await db.user.findUnique({
+                where: { id: userId },
+                select: { demoSessionId: true },
+            });
+            if (!reviewUser || reviewUser.demoSessionId !== demoSessionId) {
+                return NextResponse.json({ error: "غير مصرح لك بإضافة تقييم لهذا المستخدم" }, { status: 403 });
+            }
+        }
 
         const review = await db.review.create({
             data: {
                 productId,
                 userId,
+                demoSessionId,
                 rating: parseInt(rating),
                 comment,
             },
@@ -44,43 +72,6 @@ export async function POST(request: NextRequest) {
                 product: { select: { id: true, nameAr: true, merchantId: true, agentId: true } }
             }
         });
-
-        // جلب الإدارة
-        const admins = await db.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } });
-
-        // نص الإشعار الاحترافي الذي سيظهر في السجل
-        const notificationMessage = `قيم (${review.user.name}) منتج [${review.product.nameAr}] بـ ${rating} نجوم: "${comment || 'بدون تعليق'}"`;
-
-        const notifications = [];
-
-        // إشعارات الإدارة
-        admins.forEach(admin => {
-            notifications.push({
-                userId: admin.id,
-                type: 'NEW_RATING',
-                title: '⭐ تقييم جديد للمراجعة',
-                message: notificationMessage,
-                data: JSON.stringify({ productId: review.product.id, reviewId: review.id })
-            });
-        });
-
-        // إشعار صاحب المنتج (تاجر)
-        if (review.product.merchantId) {
-            const merchant = await db.merchant.findUnique({ where: { id: review.product.merchantId }, select: { userId: true } });
-            if (merchant) {
-                notifications.push({
-                    userId: merchant.userId,
-                    type: 'NEW_RATING',
-                    title: '🎉 تقييم جديد لمنتجك',
-                    message: notificationMessage,
-                    data: JSON.stringify({ productId: review.product.id, reviewId: review.id })
-                });
-            }
-        }
-
-        if (notifications.length > 0) {
-            await db.notification.createMany({ data: notifications });
-        }
 
         return NextResponse.json({ success: true, review });
     } catch (error) {
@@ -91,15 +82,17 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
     try {
-        const body = await request.json();
-        const { reviewId } = body;
-
-        // جلب المستخدم من التوكن مباشرة للأمان (بدل إرسال الـ ID في الرابط)
         const user = await verifyAuth(request);
 
-        if (!reviewId || !user) {
+        if (!user) {
             return NextResponse.json({ error: "بيانات غير مكتملة أو غير مصرح لك" }, { status: 401 });
         }
+
+        const decoded = user as any;
+        const demoSessionId = decoded.demoSessionId;
+
+        const body = await request.json();
+        const { reviewId } = body;
 
         const review = await db.review.findUnique({
             where: { id: reviewId },
@@ -108,9 +101,14 @@ export async function DELETE(request: NextRequest) {
 
         if (!review) return NextResponse.json({ error: "التقييم غير موجود" }, { status: 404 });
 
+        // التحقق من أن التقييم ينتمي لجلسة التجريبي الحالية
+        if (demoSessionId && review.demoSessionId !== demoSessionId) {
+            return NextResponse.json({ error: "غير مسموح لك بحذف هذا التقييم" }, { status: 403 });
+        }
+
         // التحقق من الصلاحيات
-        const isAdmin = user.role === 'ADMIN';
-        const isOwnerMerchant = user.role === 'MERCHANT' && review.product.merchantId === user.merchant?.id;
+        const isAdmin = decoded.role === 'ADMIN';
+        const isOwnerMerchant = decoded.role === 'MERCHANT' && review.product.merchantId;
 
         if (isAdmin || isOwnerMerchant) {
             await db.review.delete({ where: { id: reviewId } });
@@ -119,7 +117,7 @@ export async function DELETE(request: NextRequest) {
 
         return NextResponse.json({ error: "لا تملك صلاحية الحذف" }, { status: 403 });
     } catch (error) {
-        console.error("🔥 سبب الخطأ 500 هو:", error); // هذا السطر بيكشف لنا المشكلة الحقيقية
+        console.error("🔥 سبب الخطأ 500 هو:", error);
         return NextResponse.json({ error: "فشل في السيرفر" }, { status: 500 });
     }
 }

@@ -59,12 +59,20 @@ const updateOrderSchema = z.object({
 // Get all orders
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await verifyAuth(request);
+    const demoSessionId = (authUser as any)?.demoSessionId;
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const customerId = searchParams.get("customerId");
     const agentId = searchParams.get("agentId");
 
     const where: Record<string, unknown> = {};
+
+    // Filter by demo session for data isolation
+    if (demoSessionId) {
+      where.demoSessionId = demoSessionId;
+    }
 
     if (status) where.status = status;
     if (customerId) where.customerId = customerId;
@@ -136,6 +144,12 @@ export async function GET(request: NextRequest) {
 // Create order (secure)
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await verifyAuth(request);
+    if (!authUser) {
+      return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+    }
+    const demoSessionId = (authUser as any)?.demoSessionId;
+
     const body = await request.json();
     console.log(
       "البيانات التي وصلت للسيرفر هي:",
@@ -145,13 +159,21 @@ export async function POST(request: NextRequest) {
     // Validate input
     const validatedData = createOrderSchema.parse(body);
 
-    // Verify customer exists
+    // Verify customer exists and belongs to demo session
     const customer = await db.user.findUnique({
       where: { id: validatedData.customerId },
     });
 
     if (!customer) {
       return NextResponse.json({ error: "العميل غير موجود" }, { status: 404 });
+    }
+
+    // Verify customer belongs to the same demo session
+    if (demoSessionId && customer.demoSessionId !== demoSessionId) {
+      return NextResponse.json(
+        { error: "العميل غير تابع لجلستك التجريبية" },
+        { status: 403 },
+      );
     }
 
     // Verify all products and calculate total
@@ -216,6 +238,7 @@ export async function POST(request: NextRequest) {
         const newOrder = await tx.order.create({
           data: {
             customerId: validatedData.customerId,
+            demoSessionId,
             totalAmount: validatedData.totalAmount || totalAmount,
             notes: validatedData.notes,
             address: validatedData.address,
@@ -281,7 +304,7 @@ export async function POST(request: NextRequest) {
       userId: customer.id,
       type: "ORDER_NEW",
       title: "تم استلام طلبك بنجاح 🎉",
-      message: `رقم طلبك هو #${order.id.slice(-8)}. جاري مراجعته وتجهيزه، شكراً لتسوقك من تَرِفَة.`,
+      message: `رقم طلبك هو #${order.id.slice(-8)}. جاري مراجعته وتجهيزه، شكراً لتسوقك من زينة.`,
       data: { orderId: order.id },
     });
 
@@ -309,8 +332,33 @@ export async function POST(request: NextRequest) {
 // Update order status & Claiming Logic with Advanced Notifications + Accounting Sync
 export async function PUT(request: NextRequest) {
   try {
+    const authUser = await verifyAuth(request);
+    if (!authUser) {
+      return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+    }
+    const demoSessionId = (authUser as any)?.demoSessionId;
+    const confirmedBy = authUser?.id;
+
     const body = await request.json();
     const validatedData = updateOrderSchema.parse(body);
+
+    // جلب الطلب الحالي للتحقق من الملكية والدفع
+    const existingOrder = await db.order.findUnique({
+      where: { id: validatedData.orderId },
+      select: { paymentStatus: true, demoSessionId: true, customerId: true },
+    });
+
+    if (!existingOrder) {
+      return NextResponse.json({ error: "الطلب غير موجود" }, { status: 404 });
+    }
+
+    // التحقق من أن الطلب ينتمي لجلسة التجريبي الحالية
+    if (demoSessionId && existingOrder.demoSessionId !== demoSessionId) {
+      return NextResponse.json(
+        { error: "غير مسموح لك بتعديل هذا الطلب" },
+        { status: 403 },
+      );
+    }
 
     const updateData: any = {};
     if (validatedData.status) updateData.status = validatedData.status;
@@ -323,16 +371,6 @@ export async function PUT(request: NextRequest) {
     if (validatedData.paymentStatus) {
       updateData.paymentStatus = validatedData.paymentStatus;
     }
-
-    // التحقق من المستخدم (للحصول على معرفه عند تأكيد الدفع)
-    const authUser = await verifyAuth(request);
-    const confirmedBy = authUser?.id;
-
-    // جلب الطلب الحالي للتحقق من حالة الدفع السابقة
-    const existingOrder = await db.order.findUnique({
-      where: { id: validatedData.orderId },
-      select: { paymentStatus: true },
-    });
 
     const wasPending = existingOrder?.paymentStatus === "PENDING";
     const isConfirming =
@@ -347,6 +385,7 @@ export async function PUT(request: NextRequest) {
         where: { id: validatedData.orderId },
         data: {
           ...updateData,
+          demoSessionId,
           ...(isConfirming || isRejecting
             ? {
                 paymentConfirmedBy: confirmedBy,

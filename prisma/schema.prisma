@@ -11,6 +11,27 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// ==================== Demo Session (عزل بيانات التجربة) ====================
+
+model DemoSession {
+  id        String   @id @default(cuid())
+  role      UserRole
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  users    User[]
+  products Product[]
+  orders   Order[]
+  merchants Merchant[]
+  conversations Conversation[]
+  messages Message[]
+  notifications Notification[]
+  reviews Review[]
+  suppliers Supplier[]
+
+  @@map("demo_sessions")
+}
+
 // ==================== Users ====================
 
 model User {
@@ -26,6 +47,7 @@ model User {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   permissions String? // JSON: صلاحيات خاصة للنظام المحاسبي
+  demoSessionId String? // عزل بيانات التجربة التجريبية
 
   // Relations
   products          Product[]
@@ -40,6 +62,7 @@ model User {
   reviews           Review[]
   pushSubscriptions PushSubscription[]
   supplier          Supplier? // حساب المورد المرتبط (إذا كان تاجر/مندوب)
+  demoSession       DemoSession?     @relation(fields: [demoSessionId], references: [id])
 
   @@map("users")
 }
@@ -57,6 +80,7 @@ enum UserRole {
 model Merchant {
   id                String   @id @default(cuid())
   userId            String   @unique
+  demoSessionId     String? // عزل بيانات التجربة التجريبية
   storeName         String // اسم المحل
   storeType         String // نوع المنتجات
   fullName          String // الاسم الكامل
@@ -81,6 +105,7 @@ model Merchant {
   // Relations
   user     User      @relation(fields: [userId], references: [id])
   products Product[]
+  demoSession DemoSession? @relation(fields: [demoSessionId], references: [id])
 
   @@map("merchants")
 }
@@ -135,6 +160,7 @@ model Product {
 
   categoryId String?
   agentId    String? // المندوبة التي أضافت المنتج (اختياري)
+  demoSessionId String? // عزل بيانات التجربة التجريبية
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -146,6 +172,7 @@ model Product {
   reviews               Review[]
   supplier              Supplier?              @relation("SupplierProducts", fields: [supplierId], references: [id])
   inventoryTransactions InventoryTransaction[]
+  demoSession           DemoSession?           @relation(fields: [demoSessionId], references: [id])
 
   @@map("products")
 }
@@ -190,6 +217,7 @@ model Order {
   paymentConfirmedAt DateTime?
   source             OrderSource   @default(ONLINE) // مصدر الطلب: أونلاين أو بيع مباشر
   posUserId          String? // المستخدم الذي أنشأ الطلب في نقطة البيع (إن وجد)
+  demoSessionId      String? // عزل بيانات التجربة التجريبية
   // ====================================================
 
   createdAt DateTime @default(now())
@@ -201,6 +229,7 @@ model Order {
   governorateRel Governorate?  @relation(fields: [governorateId], references: [id])
   items          OrderItem[]
   transactions   Transaction[] // الحركات المالية المرتبطة بالطلب
+  demoSession    DemoSession?  @relation(fields: [demoSessionId], references: [id])
 
   @@map("orders")
 }
@@ -249,6 +278,7 @@ model Conversation {
   agentId    String?
   productId  String? // محادثة حول منتج معين
   status     ConversationStatus @default(ACTIVE)
+  demoSessionId String? // عزل بيانات التجربة التجريبية
   createdAt  DateTime           @default(now())
   updatedAt  DateTime           @updatedAt
 
@@ -256,6 +286,7 @@ model Conversation {
   customer User      @relation("CustomerConversations", fields: [customerId], references: [id])
   agent    User?     @relation("AgentConversations", fields: [agentId], references: [id])
   messages Message[]
+  demoSession DemoSession? @relation(fields: [demoSessionId], references: [id])
 
   @@map("conversations")
 }
@@ -272,11 +303,13 @@ model Message {
   content        String
   productImage   String? // صورة منتج من المتجر
   isRead         Boolean  @default(false)
+  demoSessionId  String? // عزل بيانات التجربة التجريبية
   createdAt      DateTime @default(now())
 
   // Relations
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender       User         @relation(fields: [senderId], references: [id])
+  demoSession  DemoSession? @relation(fields: [demoSessionId], references: [id])
 
   @@map("messages")
 }
@@ -313,9 +346,11 @@ model Notification {
   message   String
   data      String? // JSON بيانات إضافية
   isRead    Boolean          @default(false)
+  demoSessionId String? // عزل بيانات التجربة التجريبية
   createdAt DateTime         @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  demoSession DemoSession? @relation(fields: [demoSessionId], references: [id])
 
   @@map("notifications")
 }
@@ -354,6 +389,7 @@ model Review {
   id        String   @id @default(cuid())
   productId String
   userId    String
+  demoSessionId String? // عزل بيانات التجربة التجريبية
   rating    Int // 1-5 نجوم
   comment   String?
   isActive  Boolean  @default(true)
@@ -362,6 +398,7 @@ model Review {
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id])
+  demoSession DemoSession? @relation(fields: [demoSessionId], references: [id])
 
   @@map("reviews")
 }
@@ -405,7 +442,7 @@ model HeroBanner {
   id            String   @id @default(cuid())
   title         String // العنوان بالإنجليزية
   titleAr       String // العنوان بالعربية
-  subtitleAr    String? // 👈 جديد: العنوان الفرعي (مثل: تَرِفَة)
+  subtitleAr    String? // 👈 جديد: العنوان الفرعي (مثل: زينة)
   description   String?
   descriptionAr String?
   image         String
@@ -438,6 +475,7 @@ model PushSubscription {
 model Supplier {
   id          String       @id @default(cuid())
   userId      String?       @unique // ربط مباشر بالمستخدم (تاجر، مندوب، إدارة)
+  demoSessionId String? // عزل بيانات التجربة التجريبية
   name        String // اسم المورد (اسم المستخدم)
   type        SupplierType @default(MERCHANT) // نوع المورد
   commission  Float? // نسبة العمولة (تُستخدم إذا كان تاجر)
@@ -450,6 +488,7 @@ model Supplier {
   user             User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
   suppliedProducts Product[]     @relation("SupplierProducts") // المنتجات التي أضافها هذا المورد
   transactions     Transaction[] @relation("SupplierTransactions")
+  demoSession      DemoSession?  @relation(fields: [demoSessionId], references: [id])
 
   @@map("suppliers")
 }

@@ -48,7 +48,14 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search");
     const lowStock = searchParams.get("lowStock") === "true";
 
+    const demoSessionId = (user as any)?.demoSessionId;
+
     const where: any = {};
+
+    // عزل البيانات حسب الجلسة التجريبية
+    if (demoSessionId) {
+      where.demoSessionId = demoSessionId;
+    }
 
     if (categoryId) where.categoryId = categoryId;
     if (supplierId) where.supplierId = supplierId;
@@ -61,7 +68,7 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // جلب المنتجات مع العلاقات
+    // جلب المنتجات مع العلاقات (معزولة حسب الجلسة التجريبية)
     const products = await db.product.findMany({
       where,
       include: {
@@ -81,27 +88,31 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    // إحصائيات المخزون
-    const totalProducts = await db.product.count({ where: { isActive: true } });
+    // إحصائيات المخزون (معزولة حسب الجلسة التجريبية)
+    const totalProducts = await db.product.count({
+      where: { ...where, isActive: true },
+    });
     const lowStockProducts = await db.product.count({
-      where: { isActive: true, stock: { lt: 5 } },
+      where: { ...where, isActive: true, stock: { lt: 5 } },
     });
 
     const productsForValue = await db.product.findMany({
-      where: { isActive: true },
+      where: { ...where, isActive: true },
       select: { costPrice: true, stock: true },
     });
     const inventoryValue = productsForValue.reduce((total, p) => {
       return total + (p.costPrice || 0) * p.stock;
     }, 0);
 
-    // جلب التصنيفات للفلتر
+    // جلب التصنيفات للفلتر (معزولة حسب الجلسة التجريبية)
     const categories = await db.category.findMany({
+      ...(demoSessionId ? { where: { demoSessionId } } : {}),
       select: { id: true, nameAr: true },
     });
 
-    // جلب الموردين للفلتر
+    // جلب الموردين للفلتر (معزولة حسب الجلسة التجريبية)
     const suppliers = await db.supplier.findMany({
+      ...(demoSessionId ? { where: { demoSessionId } } : {}),
       select: { id: true, name: true, type: true },
     });
 
@@ -185,6 +196,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const demoSessionId = (user as any)?.demoSessionId;
+
     const product = await db.product.create({
       data: {
         name: validated.name,
@@ -199,6 +212,7 @@ export async function POST(request: NextRequest) {
         supplierId: validated.supplierId || null,
         isActive: validated.isActive,
         images: JSON.stringify([validated.mainImage || "/placeholder.png"]),
+        demoSessionId,
       },
       include: {
         category: { select: { nameAr: true } },
@@ -206,17 +220,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // تسجيل حركة مخزنية (توريد)
+    // تسجيل حركة مخزنية (توريد) مع عزل الجلسة التجريبية
     await db.inventoryTransaction.create({
       data: {
         productId: product.id,
         quantity: validated.stock,
         type: "PURCHASE",
         notes: `إضافة منتج جديد بواسطة ${user.name}`,
+        demoSessionId,
       },
     });
 
-    // تسجيل حركة مالية (تكلفة الشراء)
+    // تسجيل حركة مالية (تكلفة الشراء) مع عزل الجلسة التجريبية
     if (validated.costPrice && validated.stock > 0) {
       const totalCost = validated.costPrice * validated.stock;
       await db.transaction.create({
@@ -225,6 +240,7 @@ export async function POST(request: NextRequest) {
           amount: -totalCost,
           description: `شراء منتج: ${validated.nameAr} (${validated.stock} قطعة)`,
           supplierId: validated.supplierId || null,
+          demoSessionId,
         },
       });
     }

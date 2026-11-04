@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
     // الترويسة
     worksheet.mergeCells(currentRow, 1, currentRow, 4);
     const titleCell = worksheet.getCell(currentRow, 1);
-    titleCell.value = "تَرِفَة";
+    titleCell.value = "زينة";
     titleCell.font = {
       name: "Tajawal",
       size: 28,

@@ -25,18 +25,20 @@ export async function GET(request: NextRequest) {
     const user = await verifyAuth(request);
     if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
 
-    // نجلب المرتجعات من جدول InventoryTransaction (نوع RETURN)
+    const demoSessionId = (user as any)?.demoSessionId;
+
+    // نجلب المرتجعات من جدول InventoryTransaction (نوع RETURN) مع عزل الجلسة التجريبية
     const returns = await db.inventoryTransaction.findMany({
-      where: { type: "RETURN" },
+      where: { ...(demoSessionId ? { demoSessionId } : {}), type: "RETURN" },
       include: {
         product: { select: { nameAr: true, mainImage: true, sku: true } },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    // نجلب الحركات المالية المرتبطة بالمرتجعات (نوع RETURN)
+    // نجلب الحركات المالية المرتبطة بالمرتجعات (نوع RETURN) مع عزل الجلسة التجريبية
     const financialReturns = await db.transaction.findMany({
-      where: { type: "RETURN" },
+      where: { ...(demoSessionId ? { demoSessionId } : {}), type: "RETURN" },
       include: {
         order: { select: { id: true } },
         supplier: { select: { name: true } },
@@ -77,9 +79,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = returnSchema.parse(body);
 
-    // جلب المنتج للتأكد من وجوده
+    const demoSessionId = (user as any)?.demoSessionId;
+
+    // جلب المنتج للتأكد من وجوده وأنه ينتمي لجلسة التجريبي الحالية
     const product = await db.product.findUnique({
-      where: { id: validated.productId },
+      where: {
+        id: validated.productId,
+        ...(demoSessionId ? { demoSessionId } : {}),
+      },
       include: { merchant: true },
     });
     if (!product)
@@ -124,13 +131,19 @@ export async function POST(request: NextRequest) {
 
     // استخدام transaction لضمان تناسق البيانات
     const result = await db.$transaction(async (tx) => {
-      // 1. إعادة الكمية إلى المخزون
+      // 1. إعادة الكمية إلى المخزون (مع عزل الجلسة التجريبية)
       await tx.product.update({
-        where: { id: validated.productId },
-        data: { stock: { increment: validated.quantity } },
+        where: {
+          id: validated.productId,
+          ...(demoSessionId ? { demoSessionId } : {}),
+        },
+        data: {
+          stock: { increment: validated.quantity },
+          ...(demoSessionId ? { demoSessionId } : {}),
+        },
       });
 
-      // 2. تسجيل حركة مخزنية (مرتجع)
+      // 2. تسجيل حركة مخزنية (مرتجع) مع عزل الجلسة التجريبية
       const inventoryTx = await tx.inventoryTransaction.create({
         data: {
           productId: validated.productId,
@@ -138,6 +151,7 @@ export async function POST(request: NextRequest) {
           type: "RETURN",
           notes: validated.reason,
           reference: validated.orderId || undefined,
+          ...(demoSessionId ? { demoSessionId } : {}),
         },
       });
 
@@ -154,10 +168,14 @@ export async function POST(request: NextRequest) {
             itemTotal * (product.merchant.commissionAmount / 100);
 
           await tx.merchant.update({
-            where: { id: product.merchantId },
+            where: {
+              id: product.merchantId,
+              ...(demoSessionId ? { demoSessionId } : {}),
+            },
             data: {
               totalSales: { decrement: itemTotal },
               totalCommission: { decrement: commission },
+              ...(demoSessionId ? { demoSessionId } : {}),
             },
           });
         }
@@ -171,6 +189,7 @@ export async function POST(request: NextRequest) {
             amount: -refundAmount,
             description: `مرتجع من طلب #${originalOrder.id.slice(-8)}: ${product.nameAr} (${validated.quantity} قطعة) - ${validated.reason}`,
             orderId: validated.orderId,
+            ...(demoSessionId ? { demoSessionId } : {}),
           },
         });
 
@@ -185,6 +204,7 @@ export async function POST(request: NextRequest) {
             type: "RETURN",
             amount: -Math.abs(validated.refundAmount),
             description: `مرتجع منتج: ${product.nameAr} (${validated.quantity} قطعة) - ${validated.reason}`,
+            ...(demoSessionId ? { demoSessionId } : {}),
           },
         });
         return { inventoryTx, financialTx };

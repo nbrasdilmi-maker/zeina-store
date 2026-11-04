@@ -7,7 +7,7 @@ export default function DownloadPage() {
         {/* Logo */}
         <div className="mb-6">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-600 to-rose-600 bg-clip-text text-transparent">
-            تَرِفَة
+            زينة
           </h1>
           <p className="text-gray-500 mt-2">متجر الإكسسوارات الفاخرة</p>
         </div>

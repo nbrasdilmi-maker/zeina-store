@@ -480,8 +480,8 @@ export function AgentDashboard({
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
               <img
-                src="/logo-transparent.jpg"
-                alt="تَرِفَة"
+                src="/zeina-logo-header.png"
+                alt="زينة"
                 className="h-10 w-auto object-contain"
               />
               <Badge className="bg-purple-500">مندوب</Badge>

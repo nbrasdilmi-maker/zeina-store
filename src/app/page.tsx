@@ -48,6 +48,7 @@ import { useWishlist } from "@/contexts/wishlist-context";
 import Link from "next/link";
 import { toast } from "@/hooks/use-toast";
 import { useSearchParams, useRouter } from "next/navigation";
+import { RoleSelector } from "@/components/demo/role-selector";
 
 // Types
 interface UserData {
@@ -112,6 +113,7 @@ function HomeContent() {
   const [user, setUser] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"dashboard" | "store">("dashboard");
+  const [showRoleSelector, setShowRoleSelector] = useState<boolean | null>(null);
 
   // Products and categories state
   const [products, setProducts] = useState<Product[]>([]);
@@ -143,7 +145,7 @@ function HomeContent() {
   const heroSlides = [
     {
       title: "اكتشف عالم الأناقة",
-      subtitle: "تَرِفَة", // صورتك الثابتة
+      subtitle: "زينة", // صورتك الثابتة
       description: "وجهتك الأولى للعطور والمكياج والأكسسوارات الفاخرة",
       image:
         "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200",
@@ -152,7 +154,7 @@ function HomeContent() {
     },
     ...heroBanners.map((banner) => ({
       title: banner.titleAr || "", // العنوان الرئيسي
-      subtitle: banner.subtitleAr || "تَرِفَة", // العنوان الفرعي الجديد
+      subtitle: banner.subtitleAr || "زينة", // العنوان الفرعي الجديد
       description: banner.descriptionAr || "", // الوصف
       image: banner.image,
       cta: banner.ctaAr || "اكتشف العرض", // نص الزر الجديد
@@ -220,6 +222,31 @@ function HomeContent() {
   }, [searchParams, router]);
 
   useEffect(() => {
+    // Check for demo session first
+    const demoUser = localStorage.getItem("demo_user");
+    const demoToken = localStorage.getItem("demo_token");
+    const demoSessionId = localStorage.getItem("demo_session_id");
+
+    if (demoUser && demoToken && demoSessionId) {
+      try {
+        const parsedUser = JSON.parse(demoUser);
+        setUser({
+          id: parsedUser.id,
+          name: parsedUser.name,
+          email: parsedUser.email,
+          phone: parsedUser.phone || "",
+          role: parsedUser.role,
+          isVerified: true,
+        });
+        setShowRoleSelector(false);
+        setIsLoading(false);
+        return;
+      } catch {
+        // Invalid demo data, fall through to role selector
+      }
+    }
+
+    // Check for regular user
     const savedUser = localStorage.getItem("user");
     if (savedUser) {
       const timeout = setTimeout(() => {
@@ -228,7 +255,10 @@ function HomeContent() {
       }, 0);
       return () => clearTimeout(timeout);
     }
+
+    // No session found, show role selector
     const timeout = setTimeout(() => {
+      setShowRoleSelector(true);
       setIsLoading(false);
     }, 0);
     return () => clearTimeout(timeout);
@@ -340,11 +370,32 @@ function HomeContent() {
     );
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Clear demo session if active
+    const demoToken = localStorage.getItem("demo_token");
+    const demoSessionId = localStorage.getItem("demo_session_id");
+    if (demoToken && demoSessionId) {
+      try {
+        await fetch("/api/demo/session", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${demoToken}`,
+          },
+        });
+      } catch {
+        // Ignore errors during logout cleanup
+      }
+    }
+
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+    localStorage.removeItem("demo_user");
+    localStorage.removeItem("demo_token");
+    localStorage.removeItem("demo_session_id");
     setUser(null);
     setViewMode("dashboard");
+    setShowRoleSelector(null);
     window.location.reload();
   };
 
@@ -372,9 +423,22 @@ function HomeContent() {
           >
             <Sparkles className="w-full h-full text-[#C9A962]" />
           </motion.div>
-          <h2 className="text-2xl font-bold text-[#8B7355] mb-2">تَرِفَة</h2>
+          <h2 className="text-2xl font-bold text-[#8B7355] mb-2">زينة</h2>
           <p className="text-[#A69B8D]">جاري التحميل...</p>
         </div>
+      </div>
+    );
+  }
+
+  // Show role selector if no session exists
+  if (showRoleSelector === true) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <RoleSelector onRoleSelected={(role) => {
+          setShowRoleSelector(false);
+          // Reload to pick up the new demo session from localStorage
+          window.location.reload();
+        }} />
       </div>
     );
   }
@@ -532,7 +596,7 @@ function HomeContent() {
                     <Link href={heroSlides[currentSlide].link || "/products"}>
                       <Button
                         size="lg"
-                        className="bg-gradient-to-r from-[#C9A962] to-[#B8956E] hover:from-[#B8956E] hover:to-[#9A7B4F] text-white px-10 py-7 text-lg rounded-full shadow-2xl hover:shadow-[#C9A962]/30 transition-all duration-300 group"
+                        className="bg-gradient-to-r from-[#C9A962] to-[#B8956E] text-white px-10 py-7 text-lg rounded-full transition-all duration-300 group hover-neon-effect"
                       >
                         {heroSlides[currentSlide].cta}
                         <ArrowLeft className="mr-2 h-5 w-5 group-hover:-translate-x-1 transition-transform" />
@@ -803,7 +867,7 @@ function HomeContent() {
                           <div className="flex gap-2">
                             <Button
                               size="sm"
-                              className="flex-1 bg-gradient-to-r from-[#C9A962] to-[#B8956E] hover:from-[#B8956E] hover:to-[#9A7B4F] text-white rounded-full"
+                              className="flex-1 bg-gradient-to-r from-[#C9A962] to-[#B8956E] text-white rounded-full hover-neon-effect"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 openWhatsApp(
@@ -898,7 +962,7 @@ function HomeContent() {
                 لماذا نحن
               </span>
               <h2 className="text-4xl md:text-5xl font-bold mb-4">
-                لماذا تَرِفَة؟
+                لماذا زينة؟
               </h2>
               <p className="text-white/60 max-w-xl mx-auto text-lg">
                 نقدم لكِ تجربة تسوق فريدة ومميزة
@@ -953,7 +1017,7 @@ function HomeContent() {
             >
               <Gift className="h-12 w-12 text-white mx-auto mb-6" />
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                انضم إلى عائلة تَرِفَة
+                انضم إلى عائلة زينة
               </h2>
               <p className="text-white/80 max-w-xl mx-auto mb-8 text-lg">
                 سجل الآن واحصلي على خصم على أول طلب لك

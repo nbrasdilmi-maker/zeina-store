@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { pusherServer } from "@/lib/pusher";
 import { sendNotificationToAdmins } from "@/lib/notifications";
+import { verifyAuth } from "@/lib/auth";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -10,8 +11,30 @@ interface RouteParams {
 // PUT /api/products/[id] - تحديث منتج
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
+    const authUser = await verifyAuth(request);
+    if (!authUser) {
+      return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+    }
+    const demoSessionId = (authUser as any)?.demoSessionId;
+
     const { id } = await params;
     const body = await request.json();
+
+    // التحقق من وجود المنتج وأنه ينتمي لجلسة التجريبي الحالية
+    const existingProduct = await db.product.findUnique({
+      where: { id },
+    });
+
+    if (!existingProduct) {
+      return NextResponse.json({ error: "المنتج غير موجود" }, { status: 404 });
+    }
+
+    if (demoSessionId && existingProduct.demoSessionId !== demoSessionId) {
+      return NextResponse.json(
+        { error: "غير مسموح لك بتعديل هذا المنتج" },
+        { status: 403 },
+      );
+    }
     const {
       name,
       nameAr,
@@ -34,15 +57,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       inStock,
       estimatedDays,
     } = body;
-
-    // التحقق من وجود المنتج
-    const existingProduct = await db.product.findUnique({
-      where: { id },
-    });
-
-    if (!existingProduct) {
-      return NextResponse.json({ error: "المنتج غير موجود" }, { status: 404 });
-    }
 
     // منطق تحديث المورد (Supplier) إذا تغير agentId
     let supplierId: string | null = existingProduct.supplierId;
@@ -91,6 +105,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         stock: stock ? parseInt(stock) : undefined,
         categoryId: categoryId || null,
         agentId: agentId || null,
+        demoSessionId,
         supplierId,
         isFeatured:
           isFeatured !== undefined ? isFeatured : existingProduct.isFeatured,

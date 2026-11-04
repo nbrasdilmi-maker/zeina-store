@@ -519,7 +519,7 @@ export function OrderDetailsDialog({
       doc.setFontSize(8);
       doc.setTextColor(166, 155, 141);
       const footer = fontLoaded
-        ? formatArabicForPDF("شكراً لتسوقك من تَرِفَة - نتمنى لك تجربة راقية")
+        ? formatArabicForPDF("شكراً لتسوقك من زينة - نتمنى لك تجربة راقية")
         : "Thank you for shopping at Tarifa";
       doc.text(footer, pageWidth / 2, pageHeight - 10, { align: "center" });
 
@@ -676,7 +676,7 @@ export function OrderDetailsDialog({
       <body>
         <div class="invoice-container">
           <div class="invoice-header">
-            <div class="store-name">تَرِفَة</div>
+            <div class="store-name">زينة</div>
             <div class="invoice-title">فاتورة مبيعات</div>
           </div>
           <div class="invoice-meta">
@@ -740,7 +740,7 @@ export function OrderDetailsDialog({
           </div>
           
           <div class="footer">
-            شكراً لتسوقك من تَرِفَة - نتمنى لك تجربة راقية<br>
+            شكراً لتسوقك من زينة - نتمنى لك تجربة راقية<br>
             للتواصل: info@tarifa.com | 776668662|776080395
           </div>
         </div>

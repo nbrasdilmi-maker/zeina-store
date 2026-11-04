@@ -1,5 +1,5 @@
 /**
- * Real-time WebSocket Service for تَرِفَة Store
+ * Real-time WebSocket Service for زينة Store
  * Handles: Notifications, Chat, Order Updates, Cart Sync
  */
 

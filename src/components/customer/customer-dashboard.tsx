@@ -237,8 +237,8 @@ export function CustomerDashboard({
           <div className="flex items-center justify-between h-16">
             <Link href="/products" className="flex items-center gap-2">
               <img
-                src="/logo-transparent.jpg"
-                alt="تَرِفَة"
+                src="/zeina-logo-header.png"
+                alt="زينة"
                 className="h-10 w-auto object-contain"
               />
             </Link>
@@ -685,7 +685,7 @@ export function CustomerDashboard({
                   <ScrollArea className="h-28 w-full text-[10px] leading-relaxed text-gray-600 font-mono whitespace-pre-wrap overflow-auto">
                     {/* بناء نص الرسالة للعرض فقط لكي يتأكد العميل مما أرسله */}
                     {selectedOrder
-                      ? `*طلب جديد من متجر تَرِفَة* 🛒\n\n👤 *الاسم:* ${selectedOrder.customer?.name || "غير معروف"}\n📞 *الهاتف:* ${selectedOrder.phone}\n📍 *العنوان:* ${selectedOrder.address}\n💰 *الإجمالي:* ${formatCurrency(selectedOrder.totalAmount)}`
+                      ? `*طلب جديد من متجر زينة* 🛒\n\n👤 *الاسم:* ${selectedOrder.customer?.name || "غير معروف"}\n📞 *الهاتف:* ${selectedOrder.phone}\n📍 *العنوان:* ${selectedOrder.address}\n💰 *الإجمالي:* ${formatCurrency(selectedOrder.totalAmount)}`
                       : "جاري تحميل بيانات الرسالة..."}
                   </ScrollArea>
                 </div>

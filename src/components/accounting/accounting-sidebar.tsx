@@ -114,7 +114,7 @@ export function AccountingSidebar({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <div className="flex items-center gap-2">
-            <span className="text-xl font-bold text-[#C9A962]">تَرِفَة</span>
+            <span className="text-xl font-bold text-[#C9A962]">زينة</span>
             <span className="text-sm text-white/70">| المحاسبة</span>
           </div>
           <Button

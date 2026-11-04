@@ -1,10 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { verifyAuth } from "@/lib/auth";
 
-// Get all categories
-export async function GET() {
+// Get all categories - filtered by demo session
+export async function GET(request: NextRequest) {
   try {
+    const authUser = await verifyAuth(request);
+    const demoSessionId = (authUser as any)?.demoSessionId;
+
+    const where: Record<string, unknown> = {};
+
+    // Filter by demo session for data isolation
+    if (demoSessionId) {
+      where.demoSessionId = demoSessionId;
+    }
+
     const categories = await db.category.findMany({
+      where,
       include: {
         _count: {
           select: { products: true },
@@ -31,9 +43,15 @@ export async function GET() {
   }
 }
 
-// Create category
+// Create category - requires demo session
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await verifyAuth(request);
+    if (!authUser) {
+      return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+    }
+    const demoSessionId = (authUser as any)?.demoSessionId;
+
     const body = await request.json();
     const { name, nameAr, slug, image } = body;
 
@@ -43,6 +61,7 @@ export async function POST(request: NextRequest) {
         nameAr,
         slug: slug || name.toLowerCase().replace(/\s+/g, "-"),
         image,
+        demoSessionId,
       },
     });
 
@@ -56,15 +75,38 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Update category
+// Update category - requires demo session and ownership
 export async function PUT(request: NextRequest) {
   try {
+    const authUser = await verifyAuth(request);
+    if (!authUser) {
+      return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+    }
+    const demoSessionId = (authUser as any)?.demoSessionId;
+
     const body = await request.json();
     const { id, ...data } = body;
 
+    // Verify category belongs to this demo session
+    const existing = await db.category.findUnique({
+      where: { id },
+      select: { demoSessionId: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "التصنيف غير موجود" }, { status: 404 });
+    }
+
+    if (demoSessionId && existing.demoSessionId !== demoSessionId) {
+      return NextResponse.json(
+        { error: "غير مسموح لك بتعديل هذا التصنيف" },
+        { status: 403 },
+      );
+    }
+
     const category = await db.category.update({
       where: { id },
-      data,
+      data: { ...data, demoSessionId },
     });
 
     return NextResponse.json({ success: true, category });
@@ -77,9 +119,15 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// Delete category
+// Delete category - requires demo session and ownership
 export async function DELETE(request: NextRequest) {
   try {
+    const authUser = await verifyAuth(request);
+    if (!authUser) {
+      return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+    }
+    const demoSessionId = (authUser as any)?.demoSessionId;
+
     const { searchParams } = new URL(request.url);
     const categoryId = searchParams.get("categoryId");
 
@@ -87,6 +135,23 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         { error: "معرف التصنيف مطلوب" },
         { status: 400 }
+      );
+    }
+
+    // Verify category belongs to this demo session
+    const existing = await db.category.findUnique({
+      where: { id: categoryId },
+      select: { demoSessionId: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "التصنيف غير موجود" }, { status: 404 });
+    }
+
+    if (demoSessionId && existing.demoSessionId !== demoSessionId) {
+      return NextResponse.json(
+        { error: "غير مسموح لك بحذف هذا التصنيف" },
+        { status: 403 },
       );
     }
 

@@ -12,8 +12,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
     }
 
-    // جلب جميع الحركات المالية
+    const demoSessionId = (user as any)?.demoSessionId;
+
+    // جلب الحركات المالية (معزولة حسب الجلسة التجريبية)
     const transactions = await db.transaction.findMany({
+      ...(demoSessionId ? { where: { demoSessionId } } : {}),
       include: {
         supplier: {
           select: {

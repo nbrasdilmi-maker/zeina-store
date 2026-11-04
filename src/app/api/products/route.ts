@@ -3,10 +3,14 @@ import { db } from "@/lib/db";
 import { pusherServer } from "@/lib/pusher";
 import { sendNotificationToAdmins } from "@/lib/notifications";
 import { deleteImageFromImageKit } from "@/lib/upload";
+import { verifyAuth } from "@/lib/auth";
 
-// Get all products
+// Get all products - filtered by demo session for data isolation
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await verifyAuth(request);
+    const demoSessionId = (authUser as any)?.demoSessionId;
+
     const { searchParams } = new URL(request.url);
     const categoryId = searchParams.get("categoryId");
     const agentId = searchParams.get("agentId");
@@ -16,6 +20,11 @@ export async function GET(request: NextRequest) {
     // If "all=true", show all products including inactive ones (for admin)
     const where: Record<string, unknown> =
       all === "true" ? {} : { isActive: true };
+
+    // Filter by demo session for data isolation
+    if (demoSessionId) {
+      where.demoSessionId = demoSessionId;
+    }
 
     if (categoryId) where.categoryId = categoryId;
     if (agentId) where.agentId = agentId;
@@ -47,9 +56,16 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
 // Create product
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await verifyAuth(request);
+    if (!authUser) {
+      return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+    }
+    const demoSessionId = (authUser as any)?.demoSessionId;
+
     const body = await request.json();
     const {
       name,
@@ -80,14 +96,15 @@ export async function POST(request: NextRequest) {
       // جلب بيانات المستخدم
       const user = await db.user.findUnique({
         where: { id: agentId },
-        select: { id: true, name: true, role: true },
+        select: { id: true, name: true, role: true, demoSessionId: true },
       });
 
       if (
         user &&
         (user.role === "AGENT" ||
           user.role === "ADMIN" ||
-          user.role === "MERCHANT")
+          user.role === "MERCHANT") &&
+        user.demoSessionId === demoSessionId
       ) {
         // تحقق من وجود Supplier بنفس userId
         let supplier = await db.supplier.findUnique({
@@ -99,6 +116,7 @@ export async function POST(request: NextRequest) {
           supplier = await db.supplier.create({
             data: {
               userId: agentId,
+              demoSessionId,
               name: user.name,
               type: user.role as any, // MERCHANT, AGENT, ADMIN
               commission: null,
@@ -110,7 +128,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. إنشاء المنتج مع supplierId
+    // 2. إنشاء المنتج مع supplierId و demoSessionId
     const product = await db.product.create({
       data: {
         name,
@@ -124,6 +142,7 @@ export async function POST(request: NextRequest) {
         stock: parseInt(stock) || 0,
         categoryId,
         agentId,
+        demoSessionId,
         supplierId, // ← ربط بالمورد
         isFeatured: isFeatured || false,
         colors: typeof colors === "object" ? JSON.stringify(colors) : colors,
@@ -163,17 +182,36 @@ export async function POST(request: NextRequest) {
 // Delete product
 export async function DELETE(request: NextRequest) {
   try {
+    const authUser = await verifyAuth(request);
+    if (!authUser) {
+      return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+    }
+    const demoSessionId = (authUser as any)?.demoSessionId;
+
     const { searchParams } = new URL(request.url);
     const productId = searchParams.get("productId");
 
     if (!productId) {
       return NextResponse.json({ error: "معرف المنتج مطلوب" }, { status: 400 });
     }
-    // 1. جلب بيانات المنتج للحصول على روابط الصور قبل الحذف
+
+    // 1. جلب بيانات المنتج للتحقق من الملكية قبل الحذف
     const productData = await db.product.findUnique({
       where: { id: productId },
-      select: { mainImage: true, images: true },
+      select: { mainImage: true, images: true, demoSessionId: true },
     });
+
+    if (!productData) {
+      return NextResponse.json({ error: "المنتج غير موجود" }, { status: 404 });
+    }
+
+    // التحقق من أن المنتج ينتمي لجلسة التجريبي الحالية
+    if (demoSessionId && productData.demoSessionId !== demoSessionId) {
+      return NextResponse.json(
+        { error: "غير مسموح لك بحذف هذا المنتج" },
+        { status: 403 },
+      );
+    }
 
     if (productData) {
       // 2. حذف الصورة الأساسية من السحابة
@@ -187,7 +225,6 @@ export async function DELETE(request: NextRequest) {
           const additionalImages = JSON.parse(productData.images);
           if (Array.isArray(additionalImages)) {
             for (const imgUrl of additionalImages) {
-              // تجنب تكرار حذف الصورة الأساسية إذا كانت موجودة في المصفوفة
               if (imgUrl !== productData.mainImage) {
                 await deleteImageFromImageKit(imgUrl);
               }
@@ -200,24 +237,20 @@ export async function DELETE(request: NextRequest) {
     }
 
     try {
-      // محاولة الحذف النهائي من قاعدة البيانات
       await db.product.delete({
         where: { id: productId },
       });
     } catch (error: any) {
-      // P2003 هو كود الخطأ الذي يعني وجود طلبات مبيعات مرتبطة بالمنتج
       if (error.code === "P2003") {
-        // في هذه الحالة، نكتفي بإخفاء المنتج فقط للحفاظ على سجل المبيعات
         await db.product.update({
           where: { id: productId },
           data: { isActive: false },
         });
       } else {
-        // إذا كان الخطأ شيئاً آخر غير المبيعات، أظهره في السيرفر
         throw error;
       }
     }
-    // تحديث الواجهة الرئيسية للزوار صامتاً
+
     if (pusherServer) {
       await pusherServer.trigger("tarfah-public-channel", "public-update", {});
     }

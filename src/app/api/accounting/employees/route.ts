@@ -12,10 +12,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
     }
 
-    // جلب جميع المستخدمين الذين لديهم دور ADMIN, AGENT, MERCHANT
+    const demoSessionId = (user as any)?.demoSessionId;
+
+    // جلب جميع المستخدمين الذين لديهم دور ADMIN, AGENT, MERCHANT (معزولة حسب الجلسة التجريبية)
     const users = await db.user.findMany({
       where: {
         role: { in: ["ADMIN", "AGENT", "MERCHANT"] },
+        ...(demoSessionId ? { demoSessionId } : {}),
       },
       select: {
         id: true,
@@ -90,13 +93,18 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    const demoSessionId = (user as any)?.demoSessionId;
+
     const targetUser = await db.user.findUnique({
-      where: { id: userId },
+      where: {
+        id: userId,
+        ...(demoSessionId ? { demoSessionId } : {}),
+      },
     });
 
     if (!targetUser) {
       return NextResponse.json(
-        { error: "المستخدم غير موجود" },
+        { error: "المستخدم غير موجود أو لا ينتمي لجلستك التجريبية" },
         { status: 404 },
       );
     }

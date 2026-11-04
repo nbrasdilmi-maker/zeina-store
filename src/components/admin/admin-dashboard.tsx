@@ -888,8 +888,8 @@ export function AdminDashboard({
               </Sheet>
 
               <img
-                src="/logo-transparent.jpg"
-                alt="تَرِفَة"
+                src="/zeina-logo-header.png"
+                alt="زينة"
                 className="h-10 w-auto object-contain"
               />
               <Badge className="bg-[var(--gold)] hidden md:inline-flex">

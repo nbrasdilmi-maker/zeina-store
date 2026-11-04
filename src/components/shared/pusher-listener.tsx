@@ -8,6 +8,12 @@ export function PusherListener() {
     const { toast } = useToast();
 
     useEffect(() => {
+        // In demo mode, Pusher is disabled.
+        // Real-time updates are handled via polling in the UI components.
+        if (!pusherClient) {
+            return;
+        }
+
         // الاشتراك في القناة العامة للمتجر
         const channel = pusherClient.subscribe("tarfah-public-channel");
 
