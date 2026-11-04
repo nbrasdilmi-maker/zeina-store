@@ -98,6 +98,10 @@ export function RoleSelector({ onRoleSelected, className }: RoleSelectorProps) {
       }));
       localStorage.setItem("demo_token", data.token);
       localStorage.setItem("demo_session_id", data.sessionId);
+      // Dashboards read the generic "token" key, and ordinary page fetches
+      // rely on the cookie fallback so the storefront stays session-scoped.
+      localStorage.setItem("token", data.token);
+      document.cookie = `token=${encodeURIComponent(data.token)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
 
       toast({
         title: "مرحباً بك",

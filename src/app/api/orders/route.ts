@@ -69,10 +69,9 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = {};
 
-    // Filter by demo session for data isolation
-    if (demoSessionId) {
-      where.demoSessionId = demoSessionId;
-    }
+    // Filter by demo session for data isolation.
+    // Visitors/regular users only see the base dataset.
+    where.demoSessionId = demoSessionId ?? null;
 
     if (status) where.status = status;
     if (customerId) where.customerId = customerId;
@@ -169,7 +168,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify customer belongs to the same demo session
-    if (demoSessionId && customer.demoSessionId !== demoSessionId) {
+    if ((customer.demoSessionId ?? null) !== (demoSessionId ?? null)) {
       return NextResponse.json(
         { error: "العميل غير تابع لجلستك التجريبية" },
         { status: 403 },
@@ -353,7 +352,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // التحقق من أن الطلب ينتمي لجلسة التجريبي الحالية
-    if (demoSessionId && existingOrder.demoSessionId !== demoSessionId) {
+    if ((existingOrder.demoSessionId ?? null) !== (demoSessionId ?? null)) {
       return NextResponse.json(
         { error: "غير مسموح لك بتعديل هذا الطلب" },
         { status: 403 },

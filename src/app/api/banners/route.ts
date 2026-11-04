@@ -9,9 +9,8 @@ export async function GET(request: NextRequest) {
         const demoSessionId = (user as any)?.demoSessionId;
 
         const where: Record<string, unknown> = {};
-        if (demoSessionId) {
-            where.demoSessionId = demoSessionId;
-        }
+        // Demo sessions only see their own banners; visitors see the base set.
+        where.demoSessionId = demoSessionId ?? null;
 
         const banners = await db.heroBanner.findMany({
             where,

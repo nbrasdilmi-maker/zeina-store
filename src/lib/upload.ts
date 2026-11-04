@@ -128,34 +128,5 @@ export async function checkImageKitConfig(): Promise<{
   };
 }
 
-/**
- * Delete image from Vercel Blob
- */
-export async function deleteImageFromImageKit(imageUrl: string): Promise<boolean> {
-  try {
-    const token = process.env.BLOB_READ_WRITE_TOKEN;
-
-    if (!token) {
-      console.error("[Delete] Vercel Blob token is missing.");
-      return false;
-    }
-
-    // Vercel Blob URLs can be deleted via DELETE request
-    const deleteResponse = await fetch(imageUrl, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (deleteResponse.ok || deleteResponse.status === 204) {
-      console.log("[Delete] Image deleted successfully from Vercel Blob:", imageUrl);
-      return true;
-    }
-
-    return false;
-  } catch (error) {
-    console.error("[Vercel Blob] Delete error:", error);
-    return false;
-  }
-}
+// Image deletion is handled server-side in `@/lib/blob-server`
+// so the BLOB_READ_WRITE_TOKEN is never bundled into client code.

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { pusherServer } from "@/lib/pusher";
 import { sendNotificationToAdmins } from "@/lib/notifications";
-import { deleteImageFromImageKit } from "@/lib/upload";
+import { deleteBlobImage } from "@/lib/blob-server";
 import { verifyAuth } from "@/lib/auth";
 
 // Get all products - filtered by demo session for data isolation
@@ -21,10 +21,9 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> =
       all === "true" ? {} : { isActive: true };
 
-    // Filter by demo session for data isolation
-    if (demoSessionId) {
-      where.demoSessionId = demoSessionId;
-    }
+    // Filter by demo session for data isolation.
+    // Unauthenticated/regular visitors only see the base catalog.
+    where.demoSessionId = demoSessionId ?? null;
 
     if (categoryId) where.categoryId = categoryId;
     if (agentId) where.agentId = agentId;
@@ -216,7 +215,7 @@ export async function DELETE(request: NextRequest) {
     if (productData) {
       // 2. حذف الصورة الأساسية من السحابة
       if (productData.mainImage) {
-        await deleteImageFromImageKit(productData.mainImage);
+        await deleteBlobImage(productData.mainImage);
       }
 
       // 3. حذف صور المعرض (Gallery) من السحابة
@@ -226,7 +225,7 @@ export async function DELETE(request: NextRequest) {
           if (Array.isArray(additionalImages)) {
             for (const imgUrl of additionalImages) {
               if (imgUrl !== productData.mainImage) {
-                await deleteImageFromImageKit(imgUrl);
+                await deleteBlobImage(imgUrl);
               }
             }
           }

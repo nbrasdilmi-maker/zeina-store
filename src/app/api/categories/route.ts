@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
 
+// Category slugs are globally unique in the database. Demo sessions append a
+// short session suffix so two visitors can create the same slug safely.
+function withSessionSlug(slug: string, demoSessionId?: string | null) {
+  if (!demoSessionId) return slug;
+  const suffix = `-${demoSessionId.slice(-6)}`;
+  return slug.endsWith(suffix) ? slug : `${slug}${suffix}`;
+}
+
 // Get all categories - filtered by demo session
 export async function GET(request: NextRequest) {
   try {
@@ -10,10 +18,9 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = {};
 
-    // Filter by demo session for data isolation
-    if (demoSessionId) {
-      where.demoSessionId = demoSessionId;
-    }
+    // Filter by demo session for data isolation.
+    // Unauthenticated/regular visitors only see the base catalog.
+    where.demoSessionId = demoSessionId ?? null;
 
     const categories = await db.category.findMany({
       where,
@@ -59,7 +66,10 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         nameAr,
-        slug: slug || name.toLowerCase().replace(/\s+/g, "-"),
+        slug: withSessionSlug(
+          slug || name.toLowerCase().replace(/\s+/g, "-"),
+          demoSessionId,
+        ),
         image,
         demoSessionId,
       },
@@ -106,7 +116,13 @@ export async function PUT(request: NextRequest) {
 
     const category = await db.category.update({
       where: { id },
-      data: { ...data, demoSessionId },
+      data: {
+        ...data,
+        ...(typeof data.slug === "string" && data.slug
+          ? { slug: withSessionSlug(data.slug, demoSessionId) }
+          : {}),
+        demoSessionId,
+      },
     });
 
     return NextResponse.json({ success: true, category });

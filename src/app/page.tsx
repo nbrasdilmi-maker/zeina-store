@@ -238,6 +238,9 @@ function HomeContent() {
           role: parsedUser.role,
           isVerified: true,
         });
+        // Keep the generic token key and cookie in sync for API calls.
+        localStorage.setItem("token", demoToken);
+        document.cookie = `token=${encodeURIComponent(demoToken)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
         setShowRoleSelector(false);
         setIsLoading(false);
         return;
@@ -393,6 +396,7 @@ function HomeContent() {
     localStorage.removeItem("demo_user");
     localStorage.removeItem("demo_token");
     localStorage.removeItem("demo_session_id");
+    document.cookie = "token=; path=/; max-age=0; SameSite=Lax";
     setUser(null);
     setViewMode("dashboard");
     setShowRoleSelector(null);

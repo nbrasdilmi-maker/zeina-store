@@ -31,27 +31,32 @@ export async function GET(req: Request) {
 
     // --- 2. التجهيز الذكي للفلاتر (مهم جداً للتجار والمندوبين) ---
     let merchantId = null;
+    const demoSessionId = (user as any)?.demoSessionId ?? null;
+    const userFilter = { demoSessionId };
     
     // التاجر في قاعدة بياناتنا له جدول منفصل، يجب أن نجلب الـ id الخاص به أولاً
     if (isMerchant) {
-      const merchantRecord = await db.merchant.findUnique({
-        where: { userId: user.id },
+      const merchantRecord = await db.merchant.findFirst({
+        where: { userId: user.id, demoSessionId },
         select: { id: true }
       });
       if (merchantRecord) merchantId = merchantRecord.id;
     }
 
     // أ. فلتر المنتجات: الأدمن يرى الكل، التاجر يرى منتجاته بـ merchantId، المندوب بـ agentId
-    let productFilter: any = {};
-    if (isMerchant) productFilter = { merchantId: merchantId };
-    else if (isAgent) productFilter = { agentId: user.id };
+    let productFilter: any = { demoSessionId };
+    if (isMerchant) productFilter = { merchantId: merchantId, demoSessionId };
+    else if (isAgent) productFilter = { agentId: user.id, demoSessionId };
 
     // ب. فلتر الطلبات: الأدمن يرى الكل، التاجر يرى الطلبات التي تحتوي على منتجاته، المندوب يرى طلباته
-    let orderFilter: any = {};
+    let orderFilter: any = { demoSessionId };
     if (isMerchant) {
-      orderFilter = { items: { some: { product: { merchantId: merchantId } } } };
+      orderFilter = {
+        demoSessionId,
+        items: { some: { product: { merchantId: merchantId } } },
+      };
     } else if (isAgent) {
-      orderFilter = { agentId: user.id };
+      orderFilter = { agentId: user.id, demoSessionId };
     }
 
     // // 2. جلب الإحصائيات بشكل متسلسل (واحد تلو الآخر) لتجنب خنق الاتصال البطيء
@@ -124,9 +129,9 @@ export async function GET(req: Request) {
       recentUsers
     ] = await Promise.all([
       // أ. إحصائيات المستخدمين (للأدمن فقط، للتجار والمندوبين نرجع 0 لتجنب الأخطاء)
-      isAdmin ? db.user.count() : Promise.resolve(0),
-      isAdmin ? db.user.count({ where: { role: "CUSTOMER" } }) : Promise.resolve(0),
-      isAdmin ? db.user.count({ where: { role: "AGENT" } }) : Promise.resolve(0),
+      isAdmin ? db.user.count({ where: userFilter }) : Promise.resolve(0),
+      isAdmin ? db.user.count({ where: { ...userFilter, role: "CUSTOMER" } }) : Promise.resolve(0),
+      isAdmin ? db.user.count({ where: { ...userFilter, role: "AGENT" } }) : Promise.resolve(0),
 
       // ب. إحصائيات المنتجات (مع دمج فلتر الصلاحيات)
       db.product.count({ where: { ...productFilter, isActive: true } }),
@@ -160,6 +165,7 @@ export async function GET(req: Request) {
       isAdmin ? db.user.findMany({
         take: 5,
         orderBy: { createdAt: "desc" },
+        where: userFilter,
         select: { id: true, name: true, email: true, role: true, createdAt: true },
       }) : Promise.resolve([])
     ]);

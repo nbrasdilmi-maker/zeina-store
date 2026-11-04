@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { verifyAuth } from "@/lib/security";
+import { verifyAuth } from "@/lib/auth";
 
 /**
  * GET /api/admin/merchants
@@ -21,11 +21,12 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const status = searchParams.get("status"); // pending, approved, all
 
-        const demoSessionId = (user as any)?.demoSessionId;
+        const demoSessionId = (user as any)?.demoSessionId ?? null;
 
         // Build filter
-        const where: { isApproved?: boolean; demoSessionId?: string } = {};
-        if (demoSessionId) where.demoSessionId = demoSessionId;
+        const where: { isApproved?: boolean; demoSessionId?: string | null } = {
+            demoSessionId,
+        };
         if (status === "pending") {
             where.isApproved = false;
         } else if (status === "approved") {

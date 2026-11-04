@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { verifyAuth, checkRateLimit, logSecurityEvent } from "@/lib/security";
+import { verifyAuth } from "@/lib/auth";
+import { checkRateLimit, logSecurityEvent } from "@/lib/security";
 import { sendNotificationToUser } from "@/lib/notifications";
 
 interface RouteParams {
@@ -50,6 +51,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             return NextResponse.json(
                 { error: "التاجر غير موجود" },
                 { status: 404 }
+            );
+        }
+
+        const demoSessionId = (user as any)?.demoSessionId ?? null;
+        if ((merchant.demoSessionId ?? null) !== demoSessionId) {
+            return NextResponse.json(
+                { error: "غير مسموح لك بإدارة هذا التاجر" },
+                { status: 403 }
             );
         }
 

@@ -141,14 +141,41 @@ export { generateSessionId, addUserSession };
 // Security logging
 export { logSecurityEvent };
 // Identity verification function needed by the statistics file
-export async function verifyAuth(req: Request) {
+function getRequestToken(req: Request): string | null {
     const authHeader = req.headers.get("authorization");
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+        return authHeader.slice(7).trim();
+    }
+
+    // Demo sessions also set a same-site cookie so ordinary page fetches
+    // (which do not add Authorization headers) stay inside the session.
+    const cookieHeader = req.headers.get("cookie");
+    if (!cookieHeader) {
         return null;
     }
 
-    const token = authHeader.split(" ")[1];
+    for (const part of cookieHeader.split(";")) {
+        const [name, ...valueParts] = part.trim().split("=");
+        if (name === "token" || name === "demo_token") {
+            const value = valueParts.join("=");
+            try {
+                return decodeURIComponent(value);
+            } catch {
+                return value;
+            }
+        }
+    }
+
+    return null;
+}
+
+export async function verifyAuth(req: Request) {
+    const token = getRequestToken(req);
+
+    if (!token) {
+        return null;
+    }
 
     try {
         const result = verifyToken(token);
@@ -194,12 +221,11 @@ export async function verifyAuth(req: Request) {
  * Verify demo session from request
  */
 export async function verifyDemoAuth(req: Request) {
-    const authHeader = req.headers.get("authorization");
+    const token = getRequestToken(req);
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!token) {
         return null;
     }
 
-    const token = authHeader.split(" ")[1];
     return verifyDemoSession(token);
 }

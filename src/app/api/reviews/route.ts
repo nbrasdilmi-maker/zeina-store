@@ -16,9 +16,8 @@ export async function GET(request: NextRequest) {
         const demoSessionId = (user as any)?.demoSessionId;
 
         const where: Record<string, unknown> = { productId, isActive: true };
-        if (demoSessionId) {
-          where.demoSessionId = demoSessionId;
-        }
+        // Base reviews for visitors, session reviews for demo sessions.
+        where.demoSessionId = demoSessionId ?? null;
 
         const reviews = await db.review.findMany({
             where,
@@ -57,6 +56,18 @@ export async function POST(request: NextRequest) {
             if (!reviewUser || reviewUser.demoSessionId !== demoSessionId) {
                 return NextResponse.json({ error: "غير مصرح لك بإضافة تقييم لهذا المستخدم" }, { status: 403 });
             }
+        }
+
+        // التحقق من أن المنتج ينتمي لنفس مساحة البيانات
+        const reviewProduct = await db.product.findUnique({
+            where: { id: productId },
+            select: { demoSessionId: true },
+        });
+        if (!reviewProduct) {
+            return NextResponse.json({ error: "المنتج غير موجود" }, { status: 404 });
+        }
+        if ((reviewProduct.demoSessionId ?? null) !== (demoSessionId ?? null)) {
+            return NextResponse.json({ error: "غير مسموح لك بتقييم هذا المنتج" }, { status: 403 });
         }
 
         const review = await db.review.create({
@@ -102,13 +113,21 @@ export async function DELETE(request: NextRequest) {
         if (!review) return NextResponse.json({ error: "التقييم غير موجود" }, { status: 404 });
 
         // التحقق من أن التقييم ينتمي لجلسة التجريبي الحالية
-        if (demoSessionId && review.demoSessionId !== demoSessionId) {
+        if ((review.demoSessionId ?? null) !== (demoSessionId ?? null)) {
             return NextResponse.json({ error: "غير مسموح لك بحذف هذا التقييم" }, { status: 403 });
         }
 
         // التحقق من الصلاحيات
         const isAdmin = decoded.role === 'ADMIN';
-        const isOwnerMerchant = decoded.role === 'MERCHANT' && review.product.merchantId;
+        let isOwnerMerchant = false;
+
+        if (decoded.role === 'MERCHANT') {
+            const merchant = await db.merchant.findFirst({
+                where: { userId: decoded.userId },
+                select: { id: true },
+            });
+            isOwnerMerchant = !!merchant && review.product.merchantId === merchant.id;
+        }
 
         if (isAdmin || isOwnerMerchant) {
             await db.review.delete({ where: { id: reviewId } });

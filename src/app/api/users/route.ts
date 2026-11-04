@@ -37,11 +37,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const payload = verification.payload as any;
+    const demoSessionId = payload.isDemo ? payload.sessionId : null;
+
     const { searchParams } = new URL(request.url);
     const role = searchParams.get("role");
 
     // غيرنا النوع إلى any عشان يقبل الفلتر المتقدم
-    const where: any = {}; 
+    const where: any = { demoSessionId }; 
     
     if (role) {
       where.role = role;
@@ -114,6 +117,22 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const validated = updateSchema.parse(body);
     const { userId, ...data } = validated;
+
+    const payload = verification.payload as any;
+    const demoSessionId = payload.isDemo ? payload.sessionId : null;
+
+    // Never allow one demo session to edit a user from another session.
+    const targetUser = await db.user.findUnique({
+      where: { id: userId },
+      select: { demoSessionId: true },
+    });
+
+    if (!targetUser || (targetUser.demoSessionId ?? null) !== demoSessionId) {
+      return NextResponse.json(
+        { error: 'غير مسموح لك بتعديل هذا المستخدم' },
+        { status: 403 }
+      );
+    }
 
     // Check permissions
     const isAdmin = verification.payload?.role === 'ADMIN';

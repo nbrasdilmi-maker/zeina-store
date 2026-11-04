@@ -18,11 +18,148 @@ export interface DemoSessionData {
 }
 
 /**
+ * Copy the base catalog (demoSessionId = null) into a new demo session.
+ * This gives every visitor a realistic storefront without sharing rows.
+ */
+async function seedDemoCatalog(
+  demoSessionId: string,
+  role: UserRole,
+  demoUserId: string,
+) {
+  const suffix = demoSessionId.slice(-6);
+
+  await db.$transaction(async (tx) => {
+    // 1) Categories (slug must stay unique across the whole table)
+    const baseCategories = await tx.category.findMany({
+      where: { demoSessionId: null },
+    });
+
+    const categoryMap = new Map<string, string>();
+    for (const category of baseCategories) {
+      const cloned = await tx.category.create({
+        data: {
+          name: category.name,
+          nameAr: category.nameAr,
+          slug: `${category.slug}-${suffix}`,
+          image: category.image,
+          demoSessionId,
+        },
+      });
+      categoryMap.set(category.id, cloned.id);
+    }
+
+    // 2) Merchant profile for the demo merchant role
+    let merchantId: string | null = null;
+    if (role === "MERCHANT") {
+      const merchant = await tx.merchant.create({
+        data: {
+          userId: demoUserId,
+          demoSessionId,
+          storeName: "متجر زينة التجريبي",
+          storeType: "عطور ومكياج",
+          fullName: "تاجر تجريبي",
+          phone: "+967700000000",
+          email: `merchant-${demoSessionId}@zeina.store`,
+          address: "الجمهورية اليمنية",
+          identityCardImage: "demo-merchant",
+          isApproved: true,
+          isActive: true,
+        },
+      });
+      merchantId = merchant.id;
+    }
+
+    // 3) Products
+    const baseProducts = await tx.product.findMany({
+      where: { demoSessionId: null },
+    });
+
+    for (const product of baseProducts) {
+      await tx.product.create({
+        data: {
+          name: product.name,
+          nameAr: product.nameAr,
+          description: product.description,
+          descriptionAr: product.descriptionAr,
+          price: product.price,
+          originalPrice: product.originalPrice,
+          images: product.images,
+          mainImage: product.mainImage,
+          stock: product.stock,
+          sku: product.sku,
+          isActive: product.isActive,
+          isFeatured: product.isFeatured,
+          colors: product.colors,
+          sizes: product.sizes,
+          videoUrl: product.videoUrl,
+          featuresAr: product.featuresAr,
+          usageAr: product.usageAr,
+          ingredientsAr: product.ingredientsAr,
+          inStock: product.inStock,
+          estimatedDays: product.estimatedDays,
+          costPrice: product.costPrice,
+          categoryId: product.categoryId
+            ? categoryMap.get(product.categoryId) || null
+            : null,
+          merchantId,
+          agentId: role === "AGENT" ? demoUserId : null,
+          demoSessionId,
+        },
+      });
+    }
+
+    // 4) Hero banners
+    const baseBanners = await tx.heroBanner.findMany({
+      where: { demoSessionId: null },
+    });
+    for (const banner of baseBanners) {
+      await tx.heroBanner.create({
+        data: {
+          title: banner.title,
+          titleAr: banner.titleAr,
+          subtitleAr: banner.subtitleAr,
+          description: banner.description,
+          descriptionAr: banner.descriptionAr,
+          image: banner.image,
+          link: banner.link,
+          ctaAr: banner.ctaAr,
+          order: banner.order,
+          isActive: banner.isActive,
+          demoSessionId,
+        },
+      });
+    }
+
+    // 5) Advertisements
+    const baseAds = await tx.advertisement.findMany({
+      where: { demoSessionId: null },
+    });
+    for (const ad of baseAds) {
+      await tx.advertisement.create({
+        data: {
+          title: ad.title,
+          titleAr: ad.titleAr,
+          description: ad.description,
+          descriptionAr: ad.descriptionAr,
+          price: ad.price,
+          image: ad.image,
+          link: ad.link,
+          ctaAr: ad.ctaAr,
+          isActive: ad.isActive,
+          startDate: ad.startDate,
+          endDate: ad.endDate,
+          demoSessionId,
+        },
+      });
+    }
+  });
+}
+
+/**
  * Create a new demo session for the given role.
  * Creates a demo user in the database and returns a secure session token.
  */
 export async function createDemoSession(role: UserRole): Promise<DemoSessionData> {
-  const sessionId = `demo_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
   // Create the demo session record
@@ -44,7 +181,7 @@ export async function createDemoSession(role: UserRole): Promise<DemoSessionData
 
   const demoUser = await db.user.create({
     data: {
-      email: `demo-${sessionId}@zeina.store`,
+      email: `demo-${demoSession.id}@zeina.store`,
       name: roleLabels[role],
       password: "", // No password for demo users
       phone: "+967700000000",
@@ -54,6 +191,13 @@ export async function createDemoSession(role: UserRole): Promise<DemoSessionData
       demoSessionId: demoSession.id,
     },
   });
+
+  // Give the new session its own copy of the base catalog.
+  try {
+    await seedDemoCatalog(demoSession.id, role, demoUser.id);
+  } catch (error) {
+    console.error("Demo catalog seeding error:", error);
+  }
 
   // Generate secure tokens
   const token = generateAccessToken({
@@ -150,17 +294,60 @@ export async function verifyDemoAuth(req: Request): Promise<{
 }
 
 /**
+ * Delete every row that belongs to a demo session, then the session itself.
+ * Relations are mostly `SetNull`, so we remove children explicitly.
+ */
+export async function deleteDemoSessionData(sessionId: string): Promise<void> {
+  await db.$transaction(async (tx) => {
+    // Financial rows first (they reference orders/suppliers)
+    await tx.transaction.deleteMany({ where: { demoSessionId: sessionId } });
+    await tx.inventoryTransaction.deleteMany({
+      where: { demoSessionId: sessionId },
+    });
+
+    // Interactions
+    await tx.review.deleteMany({ where: { demoSessionId: sessionId } });
+    await tx.notification.deleteMany({ where: { demoSessionId: sessionId } });
+    await tx.message.deleteMany({ where: { demoSessionId: sessionId } });
+    await tx.conversation.deleteMany({ where: { demoSessionId: sessionId } });
+
+    // Orders and their items
+    await tx.order.deleteMany({ where: { demoSessionId: sessionId } });
+
+    // Catalog
+    await tx.product.deleteMany({ where: { demoSessionId: sessionId } });
+    await tx.category.deleteMany({ where: { demoSessionId: sessionId } });
+    await tx.heroBanner.deleteMany({ where: { demoSessionId: sessionId } });
+    await tx.advertisement.deleteMany({ where: { demoSessionId: sessionId } });
+
+    // Merchant / supplier profiles
+    await tx.supplier.deleteMany({ where: { demoSessionId: sessionId } });
+    await tx.merchant.deleteMany({ where: { demoSessionId: sessionId } });
+
+    // Users last (sessions, push subscriptions and codes cascade)
+    await tx.user.deleteMany({ where: { demoSessionId: sessionId } });
+
+    await tx.demoSession.delete({ where: { id: sessionId } });
+  });
+}
+
+/**
  * Clean up expired demo sessions (call periodically).
  */
 export async function cleanupExpiredDemoSessions() {
   try {
-    await db.demoSession.deleteMany({
-      where: {
-        expiresAt: {
-          lt: new Date(),
-        },
-      },
+    const expired = await db.demoSession.findMany({
+      where: { expiresAt: { lt: new Date() } },
+      select: { id: true },
     });
+
+    for (const session of expired) {
+      try {
+        await deleteDemoSessionData(session.id);
+      } catch (error) {
+        console.error(`Demo session cleanup error (${session.id}):`, error);
+      }
+    }
   } catch (error) {
     console.error("Demo session cleanup error:", error);
   }

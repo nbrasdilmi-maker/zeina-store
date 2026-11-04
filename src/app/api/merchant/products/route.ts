@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
-import { deleteImageFromImageKit } from "@/lib/upload";
+import { deleteBlobImage } from "@/lib/blob-server";
 
 export const dynamic = "force-dynamic";
 
@@ -361,7 +361,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (existingProduct.mainImage) {
-      await deleteImageFromImageKit(existingProduct.mainImage);
+      await deleteBlobImage(existingProduct.mainImage);
     }
 
     if (existingProduct.images) {
@@ -370,7 +370,7 @@ export async function DELETE(request: NextRequest) {
         if (Array.isArray(additionalImages)) {
           for (const imgUrl of additionalImages) {
             if (imgUrl !== existingProduct.mainImage) {
-              await deleteImageFromImageKit(imgUrl);
+              await deleteBlobImage(imgUrl);
             }
           }
         }

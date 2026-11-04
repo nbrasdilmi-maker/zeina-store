@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createDemoSession } from "@/lib/demo-session";
+import { createDemoSession, deleteDemoSessionData } from "@/lib/demo-session";
 import { UserRole } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -93,17 +93,13 @@ export async function DELETE(request: NextRequest) {
 
     const token = authHeader.split(" ")[1];
     const { verifyToken } = await import("@/lib/security");
-    const { db } = await import("@/lib/db");
 
     const result = verifyToken(token);
     if (result.valid && result.payload) {
       const payload = result.payload as any;
       if (payload.isDemo && payload.sessionId) {
         // Delete all data associated with this demo session
-        await db.demoSession.delete({
-          where: { id: payload.sessionId },
-        });
-        // Cascading deletes should handle users, products, orders, etc.
+        await deleteDemoSessionData(payload.sessionId);
       }
     }
 
