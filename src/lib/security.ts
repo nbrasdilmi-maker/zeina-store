@@ -294,7 +294,7 @@ export async function initializeAdmin() {
         email: process.env.ADMIN_EMAIL || "admin@tarifa.com",
         name: "مدير المتجر",
         password: await hashPassword(pass),
-        phone: "+967776080395",
+        phone: "+967780655615",
         role: "ADMIN",
         isVerified: true,
       },

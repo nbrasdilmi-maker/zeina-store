@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useCart } from "@/contexts/cart-context";
 import { useWishlist } from "@/contexts/wishlist-context";
+import { clearDemoSession } from "@/lib/demo-client";
 
 interface UserData {
   id: string;
@@ -263,6 +264,7 @@ export function Navbar({
                           variant="ghost"
                           className="w-full justify-start gap-3 text-rose-600 hover:text-rose-700 hover:bg-rose-50 py-5 rounded-xl"
                           onClick={() => {
+                            clearDemoSession();
                             onLogout();
                             setIsMobileMenuOpen(false);
                           }}
@@ -390,7 +392,10 @@ export function Navbar({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={onLogout}
+                      onClick={() => {
+                        clearDemoSession();
+                        onLogout();
+                      }}
                       className="hover:bg-rose-50 text-rose-600 hover:text-rose-700"
                     >
                       <LogOut className="h-4 w-4" />

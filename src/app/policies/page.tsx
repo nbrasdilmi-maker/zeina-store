@@ -26,6 +26,7 @@ import { AuthModals } from "@/components/auth/auth-modals";
 import { CartPanel } from "@/components/cart/cart-panel";
 import { CheckoutDialog } from "@/components/checkout/checkout-dialog";
 import { useCart } from "@/contexts/cart-context";
+import { isGuestCheckoutEnabled } from "@/lib/demo-client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -44,7 +45,7 @@ interface UserData {
   isVerified: boolean;
 }
 
-const WHATSAPP_NUMBER = "967776080395";
+const WHATSAPP_NUMBER = "967780655615";
 
 function PoliciesContent() {
   const searchParams = useSearchParams();
@@ -137,13 +138,12 @@ function PoliciesContent() {
         onClose={() => setIsCartOpen(false)}
         user={user}
         onCheckout={() => {
-          if (!user) {
-            setIsCartOpen(false);
+          setIsCartOpen(false);
+          if (!user && !isGuestCheckoutEnabled()) {
             setIsAuthOpen(true);
-          } else {
-            setIsCartOpen(false);
-            setIsCheckoutOpen(true);
+            return;
           }
+          setIsCheckoutOpen(true);
         }}
       />
 
@@ -238,7 +238,7 @@ function PoliciesContent() {
                     تواصل معنا عبر واتساب
                   </a>
                   <a
-                    href="mailto:tarifa.store.ye@gmail.com"
+                    href="mailto:zeinabeautyco@gmail.com"
                     className="flex items-center gap-3 bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-full font-medium transition-all duration-300 hover:scale-105"
                   >
                     <Mail className="h-5 w-5" />
@@ -581,7 +581,7 @@ function FAQPolicy() {
             </a>
             <span className="text-[#C9A962]">|</span>
             <a
-              href="mailto:tarifa.store.ye@gmail.com"
+              href="mailto:zeinabeautyco@gmail.com"
               className="flex items-center gap-2 text-[#8B7355] hover:underline"
             >
               <Mail className="h-5 w-5" />
@@ -810,8 +810,8 @@ function PrivacyPolicy() {
               </h3>
               <p>لأي استفسارات حول الخصوصية:</p>
               <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>البريد الإلكتروني:nbrask711@gmail.com</li>
-                <li>واتساب: +967 776 080 395</li>
+                <li>البريد الإلكتروني: zeinabeautyco@gmail.com</li>
+                <li>واتساب: +967 780 655 615</li>
               </ul>
             </section>
           </div>

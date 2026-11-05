@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/contexts/cart-context";
+import { isGuestCheckoutEnabled } from "@/lib/demo-client";
 
 interface CartPanelProps {
   isOpen: boolean;
@@ -381,13 +382,13 @@ export function CartPanel({
                   </div>
                 </div>
 
-                {/* ✅ الزر المعدل: يحافظ على إلزامية التسجيل */}
+                {/* الزائر يمكنه إتمام الشراء مؤقتاً دون تسجيل دخول */}
                 <Button
                   size="lg"
                   className="w-full bg-gradient-to-r from-[#C9A962] to-[#B8956E] hover:from-[#B8956E] hover:to-[#9A7B4F] text-white py-7 rounded-xl text-lg font-bold shadow-lg hover:shadow-xl transition-all"
                   onClick={onCheckout}
                 >
-                  {!user ? (
+                  {!user && !isGuestCheckoutEnabled() ? (
                     <>
                       <LogIn className="h-5 w-5 ml-2" />
                       سجل الدخول للمتابعة

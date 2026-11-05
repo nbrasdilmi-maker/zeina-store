@@ -10,6 +10,7 @@ import { AuthModals } from "@/components/auth/auth-modals";
 import { CartPanel } from "@/components/cart/cart-panel";
 import { CheckoutDialog } from "@/components/checkout/checkout-dialog";
 import { useCart } from "@/contexts/cart-context";
+import { isGuestCheckoutEnabled } from "@/lib/demo-client";
 
 interface UserData {
   id: string;
@@ -68,13 +69,12 @@ export default function AboutPage() {
         onClose={() => setIsCartOpen(false)}
         user={user}
         onCheckout={() => {
-          if (!user) {
-            setIsCartOpen(false);
+          setIsCartOpen(false);
+          if (!user && !isGuestCheckoutEnabled()) {
             setIsAuthOpen(true);
-          } else {
-            setIsCartOpen(false);
-            setIsCheckoutOpen(true);
+            return;
           }
+          setIsCheckoutOpen(true);
         }}
       />
 
@@ -82,7 +82,7 @@ export default function AboutPage() {
       <CheckoutDialog
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
-        items={cartState.items}
+        items={cartState.cart.items}
         userId={user?.id || ""}
         onSuccess={() => {
           clearCart();

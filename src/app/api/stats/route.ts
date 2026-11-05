@@ -30,9 +30,16 @@ export async function GET(req: Request) {
     }
 
     // --- 2. التجهيز الذكي للفلاتر (مهم جداً للتجار والمندوبين) ---
-    let merchantId = null;
+    let merchantId: string | null = null;
     const demoSessionId = (user as any)?.demoSessionId ?? null;
-    const userFilter = { demoSessionId };
+
+    // مدير الجلسة التجريبية يشرف على كل الجلسات التجريبية، لذلك يجب أن
+    // تعكس إحصائياته الطلبات التي أنشأها العملاء في جلساتهم الأخرى.
+    const isDemoAdmin = isAdmin && Boolean(demoSessionId);
+    const scopedSessionFilter = isDemoAdmin
+      ? { demoSessionId: { not: null } }
+      : { demoSessionId };
+    const userFilter = scopedSessionFilter;
     
     // التاجر في قاعدة بياناتنا له جدول منفصل، يجب أن نجلب الـ id الخاص به أولاً
     if (isMerchant) {
@@ -49,7 +56,7 @@ export async function GET(req: Request) {
     else if (isAgent) productFilter = { agentId: user.id, demoSessionId };
 
     // ب. فلتر الطلبات: الأدمن يرى الكل، التاجر يرى الطلبات التي تحتوي على منتجاته، المندوب يرى طلباته
-    let orderFilter: any = { demoSessionId };
+    let orderFilter: any = scopedSessionFilter;
     if (isMerchant) {
       orderFilter = {
         demoSessionId,

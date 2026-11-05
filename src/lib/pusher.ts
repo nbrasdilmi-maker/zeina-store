@@ -32,7 +32,6 @@ export const pusherClient =
 */
 
 // Demo mode: return null for both server and client
-export const pusherServer = null;
-export const pusherClient = null;
-
-export { pusherServer, pusherClient };
+// `any` keeps the optional real-time code type-checking while Pusher is off.
+export const pusherServer: any = null;
+export const pusherClient: any = null;

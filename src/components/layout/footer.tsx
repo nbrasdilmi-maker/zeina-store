@@ -7,14 +7,12 @@ import {
   MapPin,
   Instagram,
   MessageCircle,
-  Heart,
-  Sparkles,
-  Twitter,
   Facebook,
 } from "lucide-react";
+import { TikTokIcon } from "@/components/shared/tiktok-icon";
 
 // WhatsApp number
-const WHATSAPP_NUMBER = "967776080395";
+const WHATSAPP_NUMBER = "967780655615";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -39,7 +37,7 @@ export function Footer() {
             </p>
             <div className="flex gap-3">
               <a
-                href="https://www.instagram.com/tarifa.store.ye"
+                href="https://www.instagram.com/zeinabeautyco"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-11 h-11 rounded-full bg-white/10 hover:bg-gradient-to-tr hover:from-yellow-400 hover:via-pink-500 hover:to-purple-600 flex items-center justify-center transition-all duration-300 group"
@@ -57,16 +55,16 @@ export function Footer() {
                 <MessageCircle className="h-5 w-5 group-hover:scale-110 transition-transform" />
               </a>
               <a
-                href="#"
+                href="https://www.tiktok.com/@zeinabeautyco"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-11 h-11 rounded-full bg-white/10 hover:bg-[#1DA1F2] flex items-center justify-center transition-all duration-300 group"
-                aria-label="تابعنا على تويتر"
+                className="w-11 h-11 rounded-full bg-white/10 hover:bg-[#FE2C55] flex items-center justify-center transition-all duration-300 group"
+                aria-label="تابعنا على تيك توك"
               >
-                <Twitter className="h-5 w-5 group-hover:scale-110 transition-transform" />
+                <TikTokIcon className="h-5 w-5 group-hover:scale-110 transition-transform" />
               </a>
               <a
-                href="#"
+                href="https://www.facebook.com/zeinabeautyco"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-11 h-11 rounded-full bg-white/10 hover:bg-[#1877F2] flex items-center justify-center transition-all duration-300 group"
@@ -154,7 +152,7 @@ export function Footer() {
                     className="text-white hover:text-[#C9A962] transition-colors"
                     dir="ltr"
                   >
-                    +967 776 080 395
+                    +967 780 655 615
                   </a>
                 </div>
               </li>
@@ -165,11 +163,11 @@ export function Footer() {
                 <div>
                   <p className="text-white/40 text-sm">البريد الإلكتروني</p>
                   <a
-                    href="mailto:tarifa.store.ye@gmail.com"
+                    href="mailto:zeinabeautyco@gmail.com"
                     className="text-white hover:text-[#C9A962] transition-colors"
                     dir="ltr"
                   >
-                    tarifa.store.ye@gmail.com
+                    zeinabeautyco@gmail.com
                   </a>
                 </div>
               </li>
@@ -179,7 +177,7 @@ export function Footer() {
                 </div>
                 <div>
                   <p className="text-white/40 text-sm">العنوان</p>
-                  <p className="text-white">صنعاء، الجمهورية اليمنية</p>
+                  <p className="text-white">صنعاء، اليمن</p>
                 </div>
               </li>
             </ul>
@@ -195,7 +193,7 @@ export function Footer() {
               © {currentYear} زينة. جميع الحقوق محفوظة.
             </p>
             <p className="text-white/40 text-sm flex items-center gap-1">
-              تطوير : محمد ابراهيم الديلمي |776668662
+              تطوير : محمد ابراهيم الديلمي
             </p>
           </div>
         </div>

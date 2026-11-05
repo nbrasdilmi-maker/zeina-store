@@ -38,6 +38,11 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import {
+  clearDemoSession,
+  isGuestCheckoutEnabled,
+  readAnyUser,
+} from "@/lib/demo-client";
 
 interface UserData {
   id: string;
@@ -97,9 +102,9 @@ function CartContent() {
   useEffect(() => {
     requestAnimationFrame(() => {
       setMounted(true);
-      const savedUser = localStorage.getItem("user");
-      if (savedUser) {
-        setUser(JSON.parse(savedUser));
+      const stored = readAnyUser();
+      if (stored) {
+        setUser(stored);
       }
     });
   }, []);
@@ -127,19 +132,18 @@ function CartContent() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
+    clearDemoSession();
     setUser(null);
-    setViewMode("dashboard");
+    setViewMode("store");
     window.location.reload();
   };
 
   const handleCheckout = () => {
-    if (!user) {
+    if (!user && !isGuestCheckoutEnabled()) {
       setIsAuthOpen(true);
-    } else {
-      setIsCheckoutOpen(true);
+      return;
     }
+    setIsCheckoutOpen(true);
   };
 
   const handleApplyPromo = () => {
@@ -278,10 +282,14 @@ function CartContent() {
         onClose={() => setIsCheckoutOpen(false)}
         items={items}
         userId={user?.id || ""}
+        onSessionReady={(guestUser) => setUser(guestUser)}
         onSuccess={() => {
           clearCart();
           setPromoApplied(false);
           setPromoCode("");
+          const stored = readAnyUser();
+          if (stored) setUser(stored);
+          setActiveTab("orders");
         }}
       />
 
@@ -615,7 +623,9 @@ function CartContent() {
                           className="w-full bg-gradient-to-r from-[#C9A962] to-[#B8956E] hover:from-[#B8956E] hover:to-[#9A7B4F] text-white py-7 rounded-xl text-lg font-bold shadow-lg hover:shadow-xl transition-all"
                           onClick={handleCheckout}
                         >
-                          {!user ? "سجل الدخول للمتابعة" : "إتمام الشراء"}
+                          {!user && !isGuestCheckoutEnabled()
+                            ? "سجل الدخول للمتابعة"
+                            : "إتمام الشراء"}
                           <ArrowRight className="mr-2 h-5 w-5" />
                         </Button>
 

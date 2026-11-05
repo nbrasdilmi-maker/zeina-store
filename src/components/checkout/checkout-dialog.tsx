@@ -31,14 +31,19 @@ import {
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { uploadImage } from "@/lib/upload";
+import {
+    ensureCheckoutIdentity,
+    getAuthToken,
+    type DemoUser,
+} from "@/lib/demo-client";
 
 // Payment recipient info
 const PAYMENT_INFO = {
     name: "محمد ابراهيم يحيى عبدالله الديلمي",
-    phone: "+967776668662",
+    phone: "+967780655615",
 };
 
-const WHATSAPP_NUMBER = "967776080395";
+const WHATSAPP_NUMBER = "967780655615";
 
 interface CheckoutDialogProps {
     isOpen: boolean;
@@ -54,6 +59,7 @@ interface CheckoutDialogProps {
     }>;
     userId: string;
     onSuccess: (orderId: string) => void;
+    onSessionReady?: (user: DemoUser) => void;
 }
 
 export function CheckoutDialog({
@@ -62,6 +68,7 @@ export function CheckoutDialog({
     items,
     userId,
     onSuccess,
+    onSessionReady,
 }: CheckoutDialogProps) {
     const [step, setStep] = useState<"payment" | "details" | "success">("payment");
     const [paymentMethod, setPaymentMethod] = useState<"transfer" | "wallet" | null>(null);
@@ -147,7 +154,7 @@ export function CheckoutDialog({
         setIsUploading(true);
         try {
             // ⚡ تحديد مسار المجلد: إثباتات الدفع / رقم المستخدم
-            const folderPath = `/Payment_Proofs/User_${userId}`;
+            const folderPath = `/Payment_Proofs/User_${userId || "Guest"}`;
 
             const result = await uploadImage(file, folderPath);
             if (result.success && result.url) {
@@ -230,11 +237,30 @@ export function CheckoutDialog({
         // --- بداية معالجة الطلب في السيرفر ---
         setIsProcessing(true);
         try {
+            // زائر بدون حساب: ننشئ جلسة ضيف مؤقتة قبل إنشاء الطلب.
+            let effectiveUserId = userId;
+            let authToken = getAuthToken();
+
+            if (!effectiveUserId || !authToken) {
+                const identity = await ensureCheckoutIdentity({
+                    name: customerName,
+                    phone,
+                });
+                effectiveUserId = identity.user.id;
+                authToken = identity.token;
+                onSessionReady?.(identity.user);
+            }
+
             const response = await fetch("/api/orders", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(authToken
+                        ? { Authorization: `Bearer ${authToken}` }
+                        : {}),
+                },
                 body: JSON.stringify({
-                    customerId: userId,
+                    customerId: effectiveUserId,
                     customerName,
                     locationLink,
                     items: items.map(item => ({

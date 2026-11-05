@@ -37,6 +37,7 @@ import { CartPanel } from "@/components/cart/cart-panel";
 import { CheckoutDialog } from "@/components/checkout/checkout-dialog";
 import { ChatWidget } from "@/components/chat/chat-widget";
 import { useCart } from "@/contexts/cart-context";
+import { isGuestCheckoutEnabled } from "@/lib/demo-client";
 import { useWishlist } from "@/contexts/wishlist-context";
 import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
@@ -508,13 +509,12 @@ export default function ProductDetailPage() {
         onClose={() => setIsCartOpen(false)}
         user={user}
         onCheckout={() => {
-          if (!user) {
-            setIsCartOpen(false);
+          setIsCartOpen(false);
+          if (!user && !isGuestCheckoutEnabled()) {
             setIsAuthOpen(true);
-          } else {
-            setIsCartOpen(false);
-            setIsCheckoutOpen(true);
+            return;
           }
+          setIsCheckoutOpen(true);
         }}
       />
 
@@ -875,17 +875,29 @@ export default function ProductDetailPage() {
                     الطبيعة
                   </h3>
                   <div className="relative aspect-[9/16] max-w-[320px] mx-auto rounded-2xl overflow-hidden shadow-2xl border-4 border-white bg-gray-50">
-                    <iframe
-                      src={`https://www.instagram.com/reel/${product.videoUrl.split("/reels/")[1]?.split("/")[0] || product.videoUrl.split("/reel/")[1]?.split("/")[0] || product.videoUrl.split("/p/")[1]?.split("/")[0]}/embed/`}
-                      className="absolute inset-0 w-full h-full"
-                      frameBorder="0"
-                      scrolling="no"
-                      allowTransparency={true}
-                      allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                    ></iframe>
+                    {/\.(mp4|webm|ogg)(\?|$)/i.test(product.videoUrl) ||
+                    product.videoUrl.startsWith("/products/videos/") ? (
+                      <video
+                        src={product.videoUrl}
+                        poster={product.mainImage}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    ) : (
+                      <iframe
+                        src={`https://www.instagram.com/reel/${product.videoUrl.split("/reels/")[1]?.split("/")[0] || product.videoUrl.split("/reel/")[1]?.split("/")[0] || product.videoUrl.split("/p/")[1]?.split("/")[0]}/embed/`}
+                        className="absolute inset-0 w-full h-full"
+                        frameBorder="0"
+                        scrolling="no"
+                        allowTransparency={true}
+                        allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                      ></iframe>
+                    )}
                   </div>
                   <p className="text-[10px] text-center text-gray-400">
-                    إذا لم يظهر الفيديو، تأكد أن الحساب "عام" وليس "خاص"
+                    فيديو حقيقي من صفحة زينة على فيسبوك
                   </p>
                 </div>
               )}

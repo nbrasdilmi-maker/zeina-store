@@ -15,6 +15,20 @@ export interface DemoSessionData {
   token: string;
   refreshToken: string;
   expiresAt: Date;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    role: UserRole;
+    isGuest: boolean;
+  };
+}
+
+export interface CreateDemoSessionOptions {
+  guest?: boolean;
+  name?: string;
+  phone?: string;
 }
 
 /**
@@ -159,8 +173,14 @@ async function seedDemoCatalog(
  * Create a new demo session for the given role.
  * Creates a demo user in the database and returns a secure session token.
  */
-export async function createDemoSession(role: UserRole): Promise<DemoSessionData> {
+export async function createDemoSession(
+  role: UserRole,
+  options: CreateDemoSessionOptions = {},
+): Promise<DemoSessionData> {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  const isGuest = Boolean(options.guest);
+  const guestName = String(options.name || "").trim().slice(0, 80);
+  const guestPhone = String(options.phone || "").trim().slice(0, 20);
 
   // Create the demo session record
   const demoSession = await db.demoSession.create({
@@ -181,10 +201,12 @@ export async function createDemoSession(role: UserRole): Promise<DemoSessionData
 
   const demoUser = await db.user.create({
     data: {
-      email: `demo-${demoSession.id}@zeina.store`,
-      name: roleLabels[role],
+      email: isGuest
+        ? `guest-${demoSession.id}@zeina.store`
+        : `demo-${demoSession.id}@zeina.store`,
+      name: isGuest ? guestName || "زائر زينة" : roleLabels[role],
       password: "", // No password for demo users
-      phone: "+967700000000",
+      phone: isGuest ? guestPhone || "+967700000000" : "+967700000000",
       role,
       isVerified: true,
       isActive: true,
@@ -217,6 +239,14 @@ export async function createDemoSession(role: UserRole): Promise<DemoSessionData
     token,
     refreshToken,
     expiresAt,
+    user: {
+      id: demoUser.id,
+      name: demoUser.name,
+      email: demoUser.email,
+      phone: demoUser.phone,
+      role: demoUser.role,
+      isGuest,
+    },
   };
 }
 
@@ -333,12 +363,16 @@ export async function deleteDemoSessionData(sessionId: string): Promise<void> {
 
 /**
  * Clean up expired demo sessions (call periodically).
+ * `limit` keeps each request bounded so a single API call never performs an
+ * unbounded delete sweep.
  */
-export async function cleanupExpiredDemoSessions() {
+export async function cleanupExpiredDemoSessions(limit = 2) {
   try {
     const expired = await db.demoSession.findMany({
       where: { expiresAt: { lt: new Date() } },
       select: { id: true },
+      orderBy: { expiresAt: "asc" },
+      take: limit,
     });
 
     for (const session of expired) {

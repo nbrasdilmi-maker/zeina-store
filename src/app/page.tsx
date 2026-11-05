@@ -2,7 +2,6 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { pusherClient } from "@/lib/pusher";
-import { BottomNav } from "@/components/layout/bottom-nav";
 import {
   ShoppingCart,
   Heart,
@@ -48,7 +47,11 @@ import { useWishlist } from "@/contexts/wishlist-context";
 import Link from "next/link";
 import { toast } from "@/hooks/use-toast";
 import { useSearchParams, useRouter } from "next/navigation";
-import { RoleSelector } from "@/components/demo/role-selector";
+import {
+  clearDemoSession,
+  isGuestCheckoutEnabled,
+  readAnyUser,
+} from "@/lib/demo-client";
 
 // Types
 interface UserData {
@@ -103,7 +106,7 @@ const staggerContainer = {
 };
 
 // WhatsApp number
-const WHATSAPP_NUMBER = "967776080395";
+const WHATSAPP_NUMBER = "967780655615";
 
 // تم تغيير اسم الدالة من export default إلى دالة عادية
 function HomeContent() {
@@ -113,7 +116,6 @@ function HomeContent() {
   const [user, setUser] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"dashboard" | "store">("dashboard");
-  const [showRoleSelector, setShowRoleSelector] = useState<boolean | null>(null);
 
   // Products and categories state
   const [products, setProducts] = useState<Product[]>([]);
@@ -208,6 +210,9 @@ function HomeContent() {
         isVerified: true,
       };
 
+      // A regular OAuth login replaces any active demo identity.
+      clearDemoSession();
+
       localStorage.setItem("user", JSON.stringify(userData));
       localStorage.setItem("token", token);
       setUser(userData);
@@ -222,48 +227,25 @@ function HomeContent() {
   }, [searchParams, router]);
 
   useEffect(() => {
-    // Check for demo session first
-    const demoUser = localStorage.getItem("demo_user");
-    const demoToken = localStorage.getItem("demo_token");
-    const demoSessionId = localStorage.getItem("demo_session_id");
-
-    if (demoUser && demoToken && demoSessionId) {
-      try {
-        const parsedUser = JSON.parse(demoUser);
-        setUser({
-          id: parsedUser.id,
-          name: parsedUser.name,
-          email: parsedUser.email,
-          phone: parsedUser.phone || "",
-          role: parsedUser.role,
-          isVerified: true,
-        });
-        // Keep the generic token key and cookie in sync for API calls.
-        localStorage.setItem("token", demoToken);
-        document.cookie = `token=${encodeURIComponent(demoToken)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
-        setShowRoleSelector(false);
-        setIsLoading(false);
-        return;
-      } catch {
-        // Invalid demo data, fall through to role selector
-      }
-    }
-
-    // Check for regular user
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      const timeout = setTimeout(() => {
-        setUser(JSON.parse(savedUser));
-        setIsLoading(false);
-      }, 0);
-      return () => clearTimeout(timeout);
-    }
-
-    // No session found, show role selector
+    // The floating role switcher and guest checkout both use the same
+    // storage contract. `readAnyUser` also mirrors demo tokens for APIs.
     const timeout = setTimeout(() => {
-      setShowRoleSelector(true);
+      const stored = readAnyUser();
+      if (stored) {
+        setUser({
+          id: stored.id,
+          name: stored.name,
+          email: stored.email,
+          phone: stored.phone || "",
+          role: stored.role,
+          isVerified: stored.isVerified !== false,
+        });
+        // Guests keep shopping; demo roles open their dashboard.
+        if (stored.isGuest) setViewMode("store");
+      }
       setIsLoading(false);
     }, 0);
+
     return () => clearTimeout(timeout);
   }, []);
   // ✅ رادار التقاط أمر فتح لوحة التحكم من شريط الجوال السفلي (محدث وذكي)
@@ -279,6 +261,21 @@ function HomeContent() {
       }
     }
   }, [searchParams]); // 👈 السر كله هنا! أخبرنا الرادار أن يراقب الـ searchParams دائماً
+
+  // يفتح نافذة تسجيل الدخول عند الضغط على "حسابي" في القائمة السفلية للزائر
+  useEffect(() => {
+    if (searchParams.get("auth") !== "login") return;
+
+    setAuthTab("login");
+    setIsAuthOpen(true);
+
+    if (typeof window !== "undefined") {
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete("auth");
+      window.history.replaceState({}, "", newUrl.toString());
+    }
+  }, [searchParams]);
+
   // Fetch featured products, categories, banners, and ads
   useEffect(() => {
     const fetchData = async () => {
@@ -373,33 +370,11 @@ function HomeContent() {
     );
   };
 
-  const handleLogout = async () => {
-    // Clear demo session if active
-    const demoToken = localStorage.getItem("demo_token");
-    const demoSessionId = localStorage.getItem("demo_session_id");
-    if (demoToken && demoSessionId) {
-      try {
-        await fetch("/api/demo/session", {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${demoToken}`,
-          },
-        });
-      } catch {
-        // Ignore errors during logout cleanup
-      }
-    }
-
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    localStorage.removeItem("demo_user");
-    localStorage.removeItem("demo_token");
-    localStorage.removeItem("demo_session_id");
-    document.cookie = "token=; path=/; max-age=0; SameSite=Lax";
+  const handleLogout = () => {
+    // Local-only sign out: server demo rows expire on their own.
+    clearDemoSession();
     setUser(null);
-    setViewMode("dashboard");
-    setShowRoleSelector(null);
+    setViewMode("store");
     window.location.reload();
   };
 
@@ -430,19 +405,6 @@ function HomeContent() {
           <h2 className="text-2xl font-bold text-[#8B7355] mb-2">زينة</h2>
           <p className="text-[#A69B8D]">جاري التحميل...</p>
         </div>
-      </div>
-    );
-  }
-
-  // Show role selector if no session exists
-  if (showRoleSelector === true) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <RoleSelector onRoleSelected={(role) => {
-          setShowRoleSelector(false);
-          // Reload to pick up the new demo session from localStorage
-          window.location.reload();
-        }} />
       </div>
     );
   }
@@ -514,12 +476,31 @@ function HomeContent() {
         defaultTab={authTab}
       />
 
+      {/* Cart Panel */}
+      <CartPanel
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        user={user}
+        onCheckout={() => {
+          setIsCartOpen(false);
+          if (!user && !isGuestCheckoutEnabled()) {
+            setIsAuthOpen(true);
+            return;
+          }
+          setIsCheckoutOpen(true);
+        }}
+      />
+
       {/* Checkout Dialog */}
       <CheckoutDialog
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
         items={cartState.cart.items}
         userId={user?.id || ""}
+        onSessionReady={(guestUser) => {
+          setUser(guestUser);
+          setViewMode("store");
+        }}
         onSuccess={(orderId) => {
           setLastOrderId(orderId);
           clearCart();
@@ -556,22 +537,19 @@ function HomeContent() {
                   className="max-w-4xl"
                 >
                   <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.5, type: "spring" }}
-                    className="inline-block mb-4"
-                  >
-                    <Sparkles className="h-8 w-8 text-[#C9A962]" />
-                  </motion.div>
-
-                  <motion.p
-                    className="text-[#C9A962] text-xl md:text-3xl mb-3 font-light tracking-widest"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
+                    className="mb-4"
                   >
-                    {heroSlides[currentSlide].subtitle}
-                  </motion.p>
+                    <img
+                      src="/zeina-logo-footer.png"
+                      alt="زينة"
+                      loading="eager"
+                      fetchPriority="high"
+                      className="mx-auto h-auto w-48 sm:w-64 md:w-80 lg:w-96 object-contain drop-shadow-[0_6px_24px_rgba(0,0,0,0.45)]"
+                    />
+                  </motion.div>
 
                   <motion.h1
                     className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight"
@@ -1049,14 +1027,6 @@ function HomeContent() {
         userId={user?.id || ""}
         userName={user?.name || "زائر"}
         userRole={user?.role || "GUEST"}
-      />
-      <BottomNav
-        user={user}
-        onOpenCart={() => setIsCartOpen(true)}
-        onOpenAuth={() => {
-          setAuthTab("login");
-          setIsAuthOpen(true);
-        }}
       />
     </div>
   );

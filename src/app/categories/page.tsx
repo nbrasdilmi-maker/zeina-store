@@ -19,6 +19,7 @@ import { AuthModals } from "@/components/auth/auth-modals";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { useCart } from "@/contexts/cart-context";
+import { isGuestCheckoutEnabled } from "@/lib/demo-client";
 import { useWishlist } from "@/contexts/wishlist-context";
 import { toast } from "@/hooks/use-toast";
 
@@ -53,7 +54,7 @@ interface UserData {
 }
 
 // WhatsApp number
-const WHATSAPP_NUMBER = "967776080395";
+const WHATSAPP_NUMBER = "967780655615";
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -145,13 +146,12 @@ export default function CategoriesPage() {
         onClose={() => setIsCartOpen(false)}
         user={user}
         onCheckout={() => {
-          if (!user) {
-            setIsCartOpen(false);
+          setIsCartOpen(false);
+          if (!user && !isGuestCheckoutEnabled()) {
             setIsAuthOpen(true);
-          } else {
-            setIsCartOpen(false);
-            setIsCheckoutOpen(true);
+            return;
           }
+          setIsCheckoutOpen(true);
         }}
       />
 

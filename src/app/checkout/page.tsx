@@ -22,6 +22,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useCart } from "@/contexts/cart-context";
+import {
+  ensureCheckoutIdentity,
+  getAuthToken,
+  readAnyUser,
+} from "@/lib/demo-client";
 import { uploadImage } from "@/lib/upload";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -30,10 +35,10 @@ import { toast } from "@/hooks/use-toast";
 // Payment info
 const PAYMENT_INFO = {
   name: "محمد ابراهيم يحيى عبدالله الديلمي",
-  phone: "+967776668662",
+  phone: "+967780655615",
 };
 
-const WHATSAPP_NUMBER = "967776080395";
+const WHATSAPP_NUMBER = "967780655615";
 
 interface UserData {
   id: string;
@@ -55,6 +60,7 @@ export default function CheckoutPage() {
   const [transferNumber, setTransferNumber] = useState("");
   const [paymentProof, setPaymentProof] = useState("");
   const [notes, setNotes] = useState("");
+  const [customerName, setCustomerName] = useState("");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [governorate, setGovernorate] = useState("");
@@ -65,14 +71,12 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     setMounted(true);
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setTimeout(() => {
-        const userData = JSON.parse(savedUser);
-        setUser(userData);
-        setPhone(userData.phone || "");
-        setAddress(userData.address || "");
-      }, 0);
+    const stored = readAnyUser();
+    if (stored) {
+      setUser(stored);
+      setCustomerName(stored.name || "");
+      setPhone(stored.phone || "");
+      setAddress(stored.address || "");
     }
   }, []);
 
@@ -85,10 +89,10 @@ export default function CheckoutPage() {
     );
   }
 
-  const items = cartState?.items || [];
-  const itemCount = cartState?.itemCount || 0;
-  const total = cartState?.total || 0;
-  const discount = cartState?.discount || 0;
+  const items = cartState?.cart.items || [];
+  const itemCount = cartState?.cart.itemCount || 0;
+  const total = cartState?.cart.total || 0;
+  const discount = cartState?.cart.discount || 0;
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -111,8 +115,8 @@ export default function CheckoutPage() {
   };
 
   const handleSubmitOrder = async () => {
-    if (!user) {
-      toast({ title: "خطأ", description: "يجب تسجيل الدخول", variant: "destructive" });
+    if (!customerName || customerName.trim().length < 3) {
+      toast({ title: "خطأ", description: "يرجى كتابة الاسم الكامل", variant: "destructive" });
       return;
     }
 
@@ -140,11 +144,31 @@ export default function CheckoutPage() {
     try {
       const finalTotal = total - discount;
 
+      // A guest can complete the order through a temporary demo identity.
+      let effectiveUserId = user?.id || "";
+      let authToken = getAuthToken();
+
+      if (!effectiveUserId || !authToken) {
+        const identity = await ensureCheckoutIdentity({
+          name: customerName,
+          phone,
+        });
+        effectiveUserId = identity.user.id;
+        authToken = identity.token;
+        setUser(identity.user);
+      }
+
       const response = await fetch("/api/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(authToken
+            ? { Authorization: `Bearer ${authToken}` }
+            : {}),
+        },
         body: JSON.stringify({
-          customerId: user.id,
+          customerId: effectiveUserId,
+          customerName,
           items: items.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,
@@ -194,7 +218,7 @@ export default function CheckoutPage() {
         ? `رقم الحوالة: ${transferNumber}`
         : `تم الدفع عبر ${selectedWallet === "jeib" ? "محفظة جيب" : selectedWallet === "kash" ? "كاش" : "جوالي"}`;
 
-    const message = `مرحباً، أنا ${user?.name}
+    const message = `مرحباً، أنا ${customerName || user?.name || "زائر"}
 أريد طلب المنتجات التالية:
 
 ${productsList}
@@ -475,6 +499,16 @@ ${notes ? `ملاحظات: ${notes}` : ""}`;
                 <h2 className="font-bold text-lg mb-4">معلومات التوصيل</h2>
 
                 <div className="space-y-4">
+                  <div>
+                    <Label>الاسم الكامل *</Label>
+                    <Input
+                      placeholder="اكتب اسمك الكامل"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+
                   <div>
                     <Label>رقم الهاتف *</Label>
                     <Input

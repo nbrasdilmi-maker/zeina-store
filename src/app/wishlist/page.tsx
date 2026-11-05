@@ -18,6 +18,7 @@ import { AuthModals } from "@/components/auth/auth-modals";
 import { CartPanel } from "@/components/cart/cart-panel";
 import { CheckoutDialog } from "@/components/checkout/checkout-dialog";
 import { useCart } from "@/contexts/cart-context";
+import { isGuestCheckoutEnabled } from "@/lib/demo-client";
 import { useWishlist } from "@/contexts/wishlist-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -32,7 +33,7 @@ interface UserData {
   isVerified: boolean;
 }
 
-const WHATSAPP_NUMBER = "967776080395";
+const WHATSAPP_NUMBER = "967780655615";
 
 export default function WishlistPage() {
   const [user, setUser] = useState<UserData | null>(null);
@@ -136,13 +137,12 @@ export default function WishlistPage() {
         onClose={() => setIsCartOpen(false)}
         user={user}
         onCheckout={() => {
-          if (!user) {
-            setIsCartOpen(false);
+          setIsCartOpen(false);
+          if (!user && !isGuestCheckoutEnabled()) {
             setIsAuthOpen(true);
-          } else {
-            setIsCartOpen(false);
-            setIsCheckoutOpen(true);
+            return;
           }
+          setIsCheckoutOpen(true);
         }}
       />
 

@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createDemoSession, deleteDemoSessionData } from "@/lib/demo-session";
+import {
+  cleanupExpiredDemoSessions,
+  createDemoSession,
+  deleteDemoSessionData,
+} from "@/lib/demo-session";
 import { UserRole } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -9,12 +13,20 @@ const VALID_ROLES: UserRole[] = ["ADMIN", "MERCHANT", "AGENT", "CUSTOMER"];
 /**
  * POST /api/demo/session
  * Create a new demo session for the selected role.
- * Returns a secure JWT token and session data.
+ * `{ guest: true, name, phone }` creates a temporary customer identity so a
+ * visitor can check out without registering.
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { role } = body;
+    const body = await request.json().catch(() => ({}));
+    const isGuest = body?.guest === true;
+    const role = isGuest ? "CUSTOMER" : body?.role;
+    const name =
+      typeof body?.name === "string" ? body.name.trim().slice(0, 80) : "";
+    const phone =
+      typeof body?.phone === "string"
+        ? body.phone.trim().slice(0, 20)
+        : "";
 
     if (!role || !VALID_ROLES.includes(role as UserRole)) {
       return NextResponse.json(
@@ -23,17 +35,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const demoSession = await createDemoSession(role as UserRole);
+    if (isGuest && name.length < 2) {
+      return NextResponse.json(
+        { error: "يرجى كتابة الاسم الكامل لإتمام الطلب كزائر" },
+        { status: 400 }
+      );
+    }
+
+    if (isGuest && phone.length < 6) {
+      return NextResponse.json(
+        { error: "يرجى كتابة رقم هاتف صحيح لإتمام الطلب كزائر" },
+        { status: 400 }
+      );
+    }
+
+    // Best-effort, bounded cleanup. Never delay the new session for it.
+    void cleanupExpiredDemoSessions(2);
+
+    const demoSession = await createDemoSession(role as UserRole, {
+      guest: isGuest,
+      name,
+      phone,
+    });
 
     return NextResponse.json({
       success: true,
-      message: "تم إنشاء جلسة التجريبي بنجاح",
+      message: isGuest
+        ? "تم إنشاء جلسة ضيف مؤقتة"
+        : "تم إنشاء جلسة التجريبي بنجاح",
       sessionId: demoSession.sessionId,
       role: demoSession.role,
       userId: demoSession.userId,
       token: demoSession.token,
       refreshToken: demoSession.refreshToken,
       expiresAt: demoSession.expiresAt,
+      user: demoSession.user,
     });
   } catch (error) {
     console.error("Create demo session error:", error);
@@ -65,16 +101,46 @@ export async function GET(request: NextRequest) {
     }
 
     const payload = result.payload as any;
-    if (!payload.isDemo) {
+    if (!payload.isDemo || !payload.sessionId) {
       return NextResponse.json({ hasSession: false }, { status: 200 });
     }
 
-    return NextResponse.json({
-      hasSession: true,
-      sessionId: payload.sessionId,
-      userId: payload.userId,
-      role: payload.role,
-    }, { status: 200 });
+    const demoSession = await db.demoSession.findUnique({
+      where: { id: payload.sessionId },
+      select: { id: true, role: true, expiresAt: true },
+    });
+
+    if (!demoSession || demoSession.expiresAt < new Date()) {
+      return NextResponse.json({ hasSession: false }, { status: 200 });
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: payload.userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+      },
+    });
+
+    return NextResponse.json(
+      {
+        hasSession: true,
+        sessionId: demoSession.id,
+        userId: payload.userId,
+        role: demoSession.role,
+        user: user
+          ? {
+              ...user,
+              isVerified: true,
+              isGuest: user.email.startsWith("guest-"),
+            }
+          : undefined,
+      },
+      { status: 200 }
+    );
   } catch {
     return NextResponse.json({ hasSession: false }, { status: 200 });
   }

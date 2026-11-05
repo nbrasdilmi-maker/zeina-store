@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { localFont } from "next/font/local";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { CartProvider } from "@/contexts/cart-context";
@@ -7,6 +7,8 @@ import { WishlistProvider } from "@/contexts/wishlist-context";
 import { PusherListener } from "@/components/shared/pusher-listener";
 import { SWRegistration } from "@/components/shared/sw-registration";
 import { AccountingProvider } from "@/contexts/accounting-context";
+import { DemoRoleSwitcher } from "@/components/demo/role-selector";
+import { GlobalBottomNav } from "@/components/layout/global-bottom-nav";
 
 const tajawal = localFont({
   src: [
@@ -92,6 +94,16 @@ export default function RootLayout({
               <SWRegistration />
               <PusherListener />
               {children}
+              {/* Keeps page content and the footer above the fixed mobile nav. */}
+              <div
+                aria-hidden
+                className="md:hidden"
+                style={{
+                  height: "calc(4rem + env(safe-area-inset-bottom))",
+                }}
+              />
+              <GlobalBottomNav />
+              <DemoRoleSwitcher />
             </AccountingProvider>
           </WishlistProvider>
         </CartProvider>

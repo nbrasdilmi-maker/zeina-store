@@ -25,12 +25,14 @@ export async function sendNotificationToUser({
   title,
   message,
   data,
+  demoSessionId,
 }: {
   userId: string;
   type: NotificationType;
   title: string;
   message: string;
   data?: any;
+  demoSessionId?: string | null;
 }) {
   try {
     // 1. حفظ الإشعار في قاعدة البيانات
@@ -41,6 +43,7 @@ export async function sendNotificationToUser({
         title,
         message,
         data: data ? JSON.stringify(data) : null,
+        demoSessionId: demoSessionId ?? null,
       },
     });
 
@@ -59,15 +62,17 @@ export async function sendNotificationToAdmins({
   title,
   message,
   data,
+  demoSessionId,
 }: {
   type: NotificationType;
   title: string;
   message: string;
   data?: any;
+  demoSessionId?: string | null;
 }) {
   try {
     const admins = await db.user.findMany({
-      where: { role: "ADMIN" },
+      where: { role: "ADMIN", demoSessionId: demoSessionId ?? null },
       select: { id: true },
     });
 
@@ -80,6 +85,7 @@ export async function sendNotificationToAdmins({
         title,
         message,
         data,
+        demoSessionId,
       }),
     );
 

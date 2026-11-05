@@ -56,6 +56,105 @@ const updateOrderSchema = z.object({
   paymentStatus: z.enum(["PENDING", "CONFIRMED", "REJECTED"]).optional(),
 });
 
+/**
+ * Keep checkout working even when the cart still points at the public
+ * catalog: a demo order must reference a product row owned by the same demo
+ * session. Base products are cloned on demand, while products from another
+ * demo session are rejected.
+ */
+async function resolveProductForSession(
+  product: any,
+  demoSessionId: string | null,
+) {
+  if (!demoSessionId) {
+    return product.demoSessionId ? null : product;
+  }
+
+  if (product.demoSessionId === demoSessionId) {
+    return product;
+  }
+
+  if (product.demoSessionId) {
+    return null;
+  }
+
+  const existing = await db.product.findFirst({
+    where: {
+      demoSessionId,
+      ...(product.sku
+        ? { sku: product.sku }
+        : { name: product.name, price: product.price }),
+    },
+  });
+
+  if (existing) return existing;
+
+  // Map the base category to the copy that belongs to this demo session.
+  let categoryId: string | null = null;
+  if (product.categoryId) {
+    const baseCategory = await db.category.findUnique({
+      where: { id: product.categoryId },
+    });
+
+    if (baseCategory) {
+      const suffix = `-${demoSessionId.slice(-6)}`;
+      const sessionSlug = baseCategory.slug.endsWith(suffix)
+        ? baseCategory.slug
+        : `${baseCategory.slug}${suffix}`;
+
+      let clonedCategory = await db.category.findFirst({
+        where: { demoSessionId, slug: sessionSlug },
+        select: { id: true },
+      });
+
+      if (!clonedCategory) {
+        clonedCategory = await db.category.create({
+          data: {
+            name: baseCategory.name,
+            nameAr: baseCategory.nameAr,
+            slug: sessionSlug,
+            image: baseCategory.image,
+            demoSessionId,
+          },
+          select: { id: true },
+        });
+      }
+
+      categoryId = clonedCategory.id;
+    }
+  }
+
+  return db.product.create({
+    data: {
+      name: product.name,
+      nameAr: product.nameAr,
+      description: product.description,
+      descriptionAr: product.descriptionAr,
+      price: product.price,
+      originalPrice: product.originalPrice,
+      images: product.images,
+      mainImage: product.mainImage,
+      stock: product.stock,
+      sku: product.sku,
+      isActive: product.isActive,
+      isFeatured: product.isFeatured,
+      colors: product.colors,
+      sizes: product.sizes,
+      videoUrl: product.videoUrl,
+      featuresAr: product.featuresAr,
+      usageAr: product.usageAr,
+      ingredientsAr: product.ingredientsAr,
+      inStock: product.inStock,
+      estimatedDays: product.estimatedDays,
+      costPrice: product.costPrice,
+      categoryId,
+      merchantId: null,
+      agentId: null,
+      demoSessionId,
+    },
+  });
+}
+
 // Get all orders
 export async function GET(request: NextRequest) {
   try {
@@ -70,8 +169,18 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = {};
 
     // Filter by demo session for data isolation.
-    // Visitors/regular users only see the base dataset.
-    where.demoSessionId = demoSessionId ?? null;
+    // A demo ADMIN oversees every demo session (so a customer order shows up
+    // in the admin's order-management tab after switching roles), while every
+    // other role only sees its own session. Base (non-demo) admins keep
+    // seeing only base orders.
+    const isDemoAdmin =
+      authUser?.role === "ADMIN" && Boolean(demoSessionId);
+
+    if (isDemoAdmin) {
+      where.demoSessionId = { not: null };
+    } else {
+      where.demoSessionId = demoSessionId ?? null;
+    }
 
     if (status) where.status = status;
     if (customerId) where.customerId = customerId;
@@ -177,19 +286,38 @@ export async function POST(request: NextRequest) {
 
     // Verify all products and calculate total
     let totalAmount = 0;
-    const orderItems = [];
+    const orderItems: Array<{
+      productId: string;
+      quantity: number;
+      price: number;
+      color?: string | null;
+    }> = [];
 
     for (const item of validatedData.items) {
-      const product = await db.product.findUnique({
+      const sourceProduct = await db.product.findUnique({
         where: { id: item.productId },
       });
 
-      if (!product) {
+      if (!sourceProduct) {
         return NextResponse.json(
           {
             error: `المنتج غير موجود: ${item.productId}`,
           },
           { status: 404 },
+        );
+      }
+
+      const product = await resolveProductForSession(
+        sourceProduct,
+        demoSessionId ?? null,
+      );
+
+      if (!product) {
+        return NextResponse.json(
+          {
+            error: `المنتج غير متاح في جلستك الحالية: ${sourceProduct.nameAr}. يرجى تحديث السلة ثم المحاولة مرة أخرى.`,
+          },
+          { status: 400 },
         );
       }
 
@@ -216,7 +344,7 @@ export async function POST(request: NextRequest) {
       totalAmount += itemTotal;
 
       orderItems.push({
-        productId: item.productId,
+        productId: product.id,
         quantity: item.quantity,
         price: product.price,
         color: item.color,
@@ -296,6 +424,7 @@ export async function POST(request: NextRequest) {
       title: "طلب جديد! 🛍️",
       message: `تم استلام طلب جديد بقيمة ${totalAmount.toLocaleString()} ر.ي من العميل: ${customer.name}`,
       data: { orderId: order.id },
+      demoSessionId,
     });
 
     // 2. إشعار للعميل لتأكيد استلام الطلب
@@ -305,6 +434,7 @@ export async function POST(request: NextRequest) {
       title: "تم استلام طلبك بنجاح 🎉",
       message: `رقم طلبك هو #${order.id.slice(-8)}. جاري مراجعته وتجهيزه، شكراً لتسوقك من زينة.`,
       data: { orderId: order.id },
+      demoSessionId,
     });
 
     return NextResponse.json({
@@ -315,7 +445,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: error.errors?.[0]?.message || "خطأ في البيانات المرسلة" },
+        { error: error.issues?.[0]?.message || "خطأ في البيانات المرسلة" },
         { status: 400 },
       );
     }
@@ -351,8 +481,17 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "الطلب غير موجود" }, { status: 404 });
     }
 
-    // التحقق من أن الطلب ينتمي لجلسة التجريبي الحالية
-    if ((existingOrder.demoSessionId ?? null) !== (demoSessionId ?? null)) {
+    // A demo ADMIN can manage any demo order (from any customer session).
+    // Every other role is restricted to orders from its own demo session.
+    const isAdmin = authUser.role === "ADMIN";
+    const orderSessionId = existingOrder.demoSessionId ?? null;
+    const canManageOrder = isAdmin
+      ? demoSessionId
+        ? existingOrder.demoSessionId !== null
+        : existingOrder.demoSessionId === null
+      : orderSessionId === (demoSessionId ?? null);
+
+    if (!canManageOrder) {
       return NextResponse.json(
         { error: "غير مسموح لك بتعديل هذا الطلب" },
         { status: 403 },
@@ -384,7 +523,9 @@ export async function PUT(request: NextRequest) {
         where: { id: validatedData.orderId },
         data: {
           ...updateData,
-          demoSessionId,
+          // Keep the order in the customer's session; an admin acting from a
+          // different demo session must not move it.
+          demoSessionId: orderSessionId,
           ...(isConfirming || isRejecting
             ? {
                 paymentConfirmedBy: confirmedBy,
@@ -417,6 +558,7 @@ export async function PUT(request: NextRequest) {
             amount: updated.totalAmount,
             description: `بيع منتجات - طلب #${updated.id.slice(-8)}`,
             orderId: updated.id,
+            demoSessionId: orderSessionId,
           },
         });
 
@@ -448,6 +590,7 @@ export async function PUT(request: NextRequest) {
           title: "تم تأكيد الدفع ✅",
           message: `تم تأكيد استلام دفعتك للطلب #${updated.id.slice(-8)}. جاري تجهيز طلبك.`,
           data: { orderId: updated.id },
+          demoSessionId: orderSessionId,
         });
       }
 
@@ -459,6 +602,7 @@ export async function PUT(request: NextRequest) {
           title: "تنبيه بخصوص الدفع ⚠️",
           message: `عذراً، تم رفض إثبات الدفع للطلب #${updated.id.slice(-8)}. يرجى التواصل مع الإدارة.`,
           data: { orderId: updated.id },
+          demoSessionId: orderSessionId,
         });
       }
 
@@ -483,6 +627,7 @@ export async function PUT(request: NextRequest) {
       title: "تحديث حالة طلبية 📢",
       message: `قام المندوب [${order.agent?.name || "الإدارة"}] بتغيير حالة الطلبية #${orderCode} إلى (${statusAr}).\n${orderDetails}`,
       data: { orderId: order.id },
+      demoSessionId,
     });
 
     // --- 2. إشعارات لأصحاب المنتجات (تجار أو مناديب) ---
@@ -499,6 +644,7 @@ export async function PUT(request: NextRequest) {
           title: "تحديث على منتجاتك 🔔",
           message: `قام [${order.agent?.name || "الإدارة"}] باستلام/تحديث طلبيتك #${orderCode}.\nالحالة: ${statusAr}\nالمنتج: ${product.nameAr}\n${orderDetails}`,
           data: { orderId: order.id },
+          demoSessionId: orderSessionId,
         });
         ownersNotified.add(owner.id);
       }
@@ -513,6 +659,7 @@ export async function PUT(request: NextRequest) {
         title: "بدأ تجهيز طلبك 🚀",
         message: `المندوب [${claimerName}] استلم طلبك #${orderCode} وهو الآن قيد التجهيز.\nيمكنك التواصل معه مباشرة عبر الدردشة للاستفسار.`,
         data: { orderId: order.id, agentId: order.agentId },
+        demoSessionId: orderSessionId,
       });
     } else if (validatedData.status) {
       const messages: any = {
@@ -527,6 +674,7 @@ export async function PUT(request: NextRequest) {
           title: "تحديث حالة الطلب",
           message: `${messages[validatedData.status]}\nكود الطلب: #${orderCode}`,
           data: { orderId: order.id },
+          demoSessionId: orderSessionId,
         });
       }
     }

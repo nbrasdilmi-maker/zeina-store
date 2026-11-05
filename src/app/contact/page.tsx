@@ -5,7 +5,8 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Phone, Mail, MapPin, MessageCircle, Send, Instagram } from "lucide-react";
+import { Phone, Mail, MapPin, MessageCircle, Send, Instagram, Facebook } from "lucide-react";
+import { TikTokIcon } from "@/components/shared/tiktok-icon";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Navbar } from "@/components/layout/navbar";
@@ -14,9 +15,10 @@ import { AuthModals } from "@/components/auth/auth-modals";
 import { CartPanel } from "@/components/cart/cart-panel";
 import { CheckoutDialog } from "@/components/checkout/checkout-dialog";
 import { useCart } from "@/contexts/cart-context";
+import { isGuestCheckoutEnabled } from "@/lib/demo-client";
 import { toast } from "@/hooks/use-toast";
 
-const WHATSAPP_NUMBER = "967776080395";
+const WHATSAPP_NUMBER = "967780655615";
 
 interface UserData {
   id: string;
@@ -100,13 +102,12 @@ ${formData.message}`;
         onClose={() => setIsCartOpen(false)}
         user={user}
         onCheckout={() => {
-          if (!user) {
-            setIsCartOpen(false);
+          setIsCartOpen(false);
+          if (!user && !isGuestCheckoutEnabled()) {
             setIsAuthOpen(true);
-          } else {
-            setIsCartOpen(false);
-            setIsCheckoutOpen(true);
+            return;
           }
+          setIsCheckoutOpen(true);
         }}
       />
 
@@ -114,7 +115,7 @@ ${formData.message}`;
       <CheckoutDialog
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
-        items={cartState.items}
+        items={cartState.cart.items}
         userId={user?.id || ""}
         onSuccess={() => {
           clearCart();
@@ -152,7 +153,7 @@ ${formData.message}`;
                     <div>
                       <p className="font-bold">واتساب</p>
                       <Button variant="link" className="p-0 h-auto" onClick={openWhatsApp}>
-                        +967 776 080 395
+                        +967 780 655 615
                       </Button>
                     </div>
                   </div>
@@ -163,7 +164,7 @@ ${formData.message}`;
                     </div>
                     <div>
                       <p className="font-bold">هاتف</p>
-                      <p className="text-gray-600">+967 776 080 395</p>
+                      <p className="text-gray-600">+967 780 655 615</p>
                     </div>
                   </div>
 
@@ -173,7 +174,7 @@ ${formData.message}`;
                     </div>
                     <div>
                       <p className="font-bold">البريد الإلكتروني</p>
-                      <p className="text-gray-600">tarifa.store.ye@gmail.com</p>
+                      <p className="text-gray-600">zeinabeautyco@gmail.com</p>
                     </div>
                   </div>
 
@@ -183,7 +184,7 @@ ${formData.message}`;
                     </div>
                     <div>
                       <p className="font-bold">العنوان</p>
-                      <p className="text-gray-600">صنعاء، الجمهورية اليمنية</p>
+                      <p className="text-gray-600">صنعاء، اليمن</p>
                     </div>
                   </div>
 
@@ -191,12 +192,31 @@ ${formData.message}`;
                     <p className="font-bold mb-3">تابعنا على</p>
                     <div className="flex gap-3">
                       <a
-                        href="https://www.instagram.com/tarifa.store.ye"
+                        href="https://www.instagram.com/zeinabeautyco"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center text-white hover:scale-110 transition-transform"
+                        aria-label="تابعنا على انستغرام"
                       >
                         <Instagram className="h-5 w-5" />
+                      </a>
+                      <a
+                        href="https://www.tiktok.com/@zeinabeautyco"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-10 h-10 rounded-full bg-black flex items-center justify-center text-white hover:scale-110 transition-transform"
+                        aria-label="تابعنا على تيك توك"
+                      >
+                        <TikTokIcon className="h-5 w-5" />
+                      </a>
+                      <a
+                        href="https://www.facebook.com/zeinabeautyco"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-10 h-10 rounded-full bg-[#1877F2] flex items-center justify-center text-white hover:scale-110 transition-transform"
+                        aria-label="تابعنا على فيسبوك"
+                      >
+                        <Facebook className="h-5 w-5" />
                       </a>
                     </div>
                   </div>

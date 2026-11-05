@@ -39,6 +39,7 @@ import { ChatWidget } from "@/components/chat/chat-widget";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { useCart } from "@/contexts/cart-context";
+import { isGuestCheckoutEnabled } from "@/lib/demo-client";
 import { useWishlist } from "@/contexts/wishlist-context";
 import { useRouter } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
@@ -72,7 +73,7 @@ interface Category {
 }
 
 // WhatsApp number
-const WHATSAPP_NUMBER = "967776080395";
+const WHATSAPP_NUMBER = "967780655615";
 
 export default function ProductsPage() {
   const [user, setUser] = useState<UserData | null>(null);
@@ -199,13 +200,12 @@ export default function ProductsPage() {
         onClose={() => setIsCartOpen(false)}
         user={user}
         onCheckout={() => {
-          if (!user) {
-            setIsCartOpen(false);
+          setIsCartOpen(false);
+          if (!user && !isGuestCheckoutEnabled()) {
             setIsAuthOpen(true);
-          } else {
-            setIsCartOpen(false);
-            setIsCheckoutOpen(true);
+            return;
           }
+          setIsCheckoutOpen(true);
         }}
       />
 

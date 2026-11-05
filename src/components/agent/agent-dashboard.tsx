@@ -76,7 +76,7 @@ import { uploadImage } from "@/lib/upload";
 import { ProductFormDialog } from "@/components/shared/product-form-dialog";
 
 // WhatsApp number
-const WHATSAPP_NUMBER = "967776080395";
+const WHATSAPP_NUMBER = "967780655615";
 
 interface AgentDashboardProps {
   user: {

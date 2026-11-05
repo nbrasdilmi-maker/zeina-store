@@ -31,6 +31,7 @@ import {
     Upload,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { clearDemoSession } from "@/lib/demo-client";
 
 interface AuthModalsProps {
     isOpen: boolean;
@@ -116,7 +117,7 @@ export function AuthModals({ isOpen, onClose, defaultTab = "login" }: AuthModals
 
     // Clear errors when tab changes
     const handleTabChange = (tab: string) => {
-        setActiveTab(tab);
+        setActiveTab(tab as "login" | "register");
         setValidationErrors([]);
         setServerError("");
     };
@@ -264,6 +265,9 @@ export function AuthModals({ isOpen, onClose, defaultTab = "login" }: AuthModals
                 title: "مرحباً بك",
                 description: "تم تسجيل الدخول بنجاح",
             });
+
+            // A regular login replaces any active demo identity.
+            clearDemoSession();
 
             // Store user and token in localStorage
             localStorage.setItem("user", JSON.stringify(data.user));

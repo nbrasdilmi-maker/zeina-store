@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactElement } from "react";
 import { pusherClient } from "@/lib/pusher";
 import {
   Search,
@@ -48,7 +48,7 @@ interface AdminOrdersTabProps {
   onUpdateStatus: (orderId: string, status: string) => void;
   formatCurrency: (amount: number) => string;
   formatDate: (date: string) => string;
-  getStatusBadge: (status: string) => JSX.Element;
+  getStatusBadge: (status: string) => ReactElement;
 }
 
 export function AdminOrdersTab({
@@ -64,6 +64,9 @@ export function AdminOrdersTab({
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   // الاستماع للإشعارات اللحظية لتحديث الجدول تلقائياً
   useEffect(() => {
+    // Pusher معطّل في وضع التجربة المحلي؛ نحمي الاستدعاء حتى لا ينهار التبويب.
+    if (!pusherClient) return;
+
     const channel = pusherClient.subscribe("tarfah-public-channel");
 
     channel.bind("new-notification", () => {

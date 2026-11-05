@@ -741,7 +741,7 @@ export function OrderDetailsDialog({
           
           <div class="footer">
             شكراً لتسوقك من زينة - نتمنى لك تجربة راقية<br>
-            للتواصل: info@tarifa.com | 776668662|776080395
+            للتواصل: zeinabeautyco@gmail.com | +967 780 655 615
           </div>
         </div>
       </body>
