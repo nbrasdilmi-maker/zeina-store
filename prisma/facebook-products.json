@@ -1,0 +1,353 @@
+[
+  {
+    "i": 3,
+    "name": "May Dream Saudi Bundles",
+    "nameAr": "بكجات ماي دريم السعودية",
+    "cat": "makeup",
+    "price": 28000,
+    "featured": true,
+    "desc": "May Dream beauty bundles imported from Saudi Arabia, available in limited quantities.",
+    "descAr": "بكجات ماي دريم السعودية الكاملة، وصلت بكميات محدودة. تشكيلة متكاملة من منتجات التجميل والعناية، مناسبة للاستخدام الشخصي أو كهدية راقية.",
+    "features": [
+      "تشكيلة ماي دريم السعودية الأصلية",
+      "بوكس متكامل وجاهز للإهداء",
+      "كمية محدودة",
+      "متوفر بالجملة والتجزئة"
+    ],
+    "sku": "FB-3",
+    "image": "/products/images/zeina-3-maydream-bundles.jpg",
+    "video": "/products/videos/zeina-3-maydream-bundles.mp4"
+  },
+  {
+    "i": 5,
+    "name": "Orquette Pink Perfume",
+    "nameAr": "عطر أورقيت بينك الوردي",
+    "cat": "perfumes",
+    "price": 18000,
+    "desc": "Orquette Pink and Orquette Pink Diva perfumes, back in stock in limited quantities.",
+    "descAr": "عطر أورقيت بينك الوردي وعطر أورقيت بينك ديفا، عودة جديدة بكمية محدودة جدًا. عطر نسائي أنثوي بثبات مميز وحضور راقٍ.",
+    "features": [
+      "عطر نسائي أنثوي فاخر",
+      "ثبات وفوحان مميز",
+      "كمية محدودة",
+      "متوفر بالجملة والتجزئة"
+    ],
+    "sku": "FB-5",
+    "image": "/products/images/zeina-5-orquette-pink.jpg",
+    "video": "/products/videos/zeina-5-orquette-pink.mp4"
+  },
+  {
+    "i": 7,
+    "name": "Assaf Happiness Box 3",
+    "nameAr": "بوكس السعادة من عساف — 3 روائح",
+    "cat": "perfumes",
+    "price": 22000,
+    "desc": "Assaf Happiness gift box with three different Frankincense fragrances.",
+    "descAr": "بوكس السعادة من عساف بثلاث روائح فرانكيل مختلفة. هدية أنيقة ومثالية لمن تحبين، بتغليف فاخر وتجربة عطرية متنوعة.",
+    "features": [
+      "3 روائح فرانكيل مختلفة",
+      "تغليف فاخر جاهز للإهداء",
+      "من عطور عساف",
+      "متوفر بالجملة والتجزئة"
+    ],
+    "sku": "FB-7",
+    "image": "/products/images/zeina-7-assaf-box-3.jpg",
+    "video": "/products/videos/zeina-7-assaf-box-3.mp4"
+  },
+  {
+    "i": 8,
+    "name": "Assaf Happiness Box 8",
+    "nameAr": "بوكس السعادة من عساف — 8 روائح",
+    "cat": "perfumes",
+    "price": 35000,
+    "desc": "Assaf Happiness gift box with eight different fragrances.",
+    "descAr": "بوكس السعادة من عساف بثماني روائح مختلفة. مجموعة واسعة تناسب كل الأذواق، وخيار مثالي كهدية فاخرة.",
+    "features": [
+      "8 روائح مختلفة",
+      "تغليف فاخر جاهز للإهداء",
+      "من عطور عساف",
+      "متوفر بالجملة والتجزئة"
+    ],
+    "sku": "FB-8",
+    "image": "/products/images/zeina-8-assaf-box-8.jpg",
+    "video": "/products/videos/zeina-8-assaf-box-8.mp4"
+  },
+  {
+    "i": 17,
+    "name": "Milyar Zyora Perfume",
+    "nameAr": "عطر مليار من زيفورا",
+    "cat": "perfumes",
+    "price": 25000,
+    "featured": true,
+    "desc": "Milyar by Zyora, a bold and long-lasting signature perfume.",
+    "descAr": "عطر مليار من زيفورا… عطر يحضر قبل صاحبه. فخامة وحضور وثبات يجعله بصمة مميزة من أول رشة. الأصلي متوفر لدى محل زينة.",
+    "features": [
+      "عطر مليار من زيفورا",
+      "ثبات وفوحان عالي",
+      "حضور فاخر ومميز",
+      "متوفر بالجملة والتجزئة"
+    ],
+    "sku": "FB-17",
+    "image": "/products/images/zeina-17-milyar-zyora.jpg",
+    "video": "/products/videos/zeina-17-milyar-zyora.mp4"
+  },
+  {
+    "i": 19,
+    "name": "Drive Perfume",
+    "nameAr": "عطر درايف",
+    "cat": "perfumes",
+    "price": 20000,
+    "desc": "Drive perfume for a refined and distinctive presence.",
+    "descAr": "عطر درايف، عطر الأشخاص الراقيين والمميزين. اغتنم الفرصة واطلب عطرك الآن من محل زينة.",
+    "features": [
+      "عطر درايف المميز",
+      "رائحة راقية وثبات جيد",
+      "مناسب للاستخدام اليومي والمناسبات",
+      "متوفر بالجملة والتجزئة"
+    ],
+    "sku": "FB-19",
+    "image": "/products/images/zeina-19-drive-perfume.jpg",
+    "video": "/products/videos/zeina-19-drive-perfume.mp4"
+  },
+  {
+    "i": 58,
+    "name": "May Dream Complete Box",
+    "nameAr": "بكج ماي دريم — بوكس متكامل",
+    "cat": "makeup",
+    "price": 30000,
+    "desc": "A complete May Dream box, elegantly arranged and ideal as a gift.",
+    "descAr": "بكج ماي دريم المتكامل… كل ما تحتاجينه في بوكس واحد! اختيار أنيق لكِ أو كهدية مميزة. منتجات مرتبة، شكل فخم، ومحتوى يليق بإطلالتك.",
+    "features": [
+      "بوكس ماي دريم متكامل",
+      "منتجات مرتبة بشكل فاخر",
+      "مثالي للاستخدام أو الإهداء",
+      "متوفر بالجملة والتجزئة"
+    ],
+    "sku": "FB-58",
+    "image": "/products/images/zeina-58-maydream-complete-box.jpg",
+    "video": "/products/videos/zeina-58-maydream-complete-box.mp4"
+  },
+  {
+    "i": 60,
+    "name": "Ibraq Perfume Boxes 5",
+    "nameAr": "بكجات عطور إبراق — 5 روائح",
+    "cat": "perfumes",
+    "price": 32000,
+    "desc": "Five Ibraq perfume boxes, each with its own distinctive scent.",
+    "descAr": "خمسة بكجات من عطور إبراق، خمس روائح مختلفة. كل بكج له طابعه الخاص، اختاري الرائحة التي تشبهك وكوني دائمًا مميزة.",
+    "features": [
+      "5 بكجات عطور إبراق",
+      "5 روائح مختلفة",
+      "خيارات متنوعة تناسب كل الأذواق",
+      "متوفر بالجملة والتجزئة"
+    ],
+    "sku": "FB-60",
+    "image": "/products/images/zeina-60-ibraq-boxes-5.jpg",
+    "video": "/products/videos/zeina-60-ibraq-boxes-5.mp4"
+  },
+  {
+    "i": 62,
+    "name": "Makeup Gift Box",
+    "nameAr": "بوكس مكياج جاهز للإهداء",
+    "cat": "makeup",
+    "price": 25000,
+    "desc": "Ready-to-gift makeup boxes with a variety of options.",
+    "descAr": "بوكسات المكياج وصلت إلى زينة! بوكسات مرتبة وجاهزة للإهداء، بخيارات متنوعة تناسب كل ذوق. اختاري بوكسك واجعل هديتك تتكلم عن ذوقك.",
+    "features": [
+      "بوكس مكياج جاهز للإهداء",
+      "خيارات متنوعة",
+      "تغليف أنيق ومرتب",
+      "متوفر بالجملة والتجزئة"
+    ],
+    "sku": "FB-62",
+    "image": "/products/images/zeina-62-makeup-gift-box.jpg",
+    "video": "/products/videos/zeina-62-makeup-gift-box.mp4"
+  },
+  {
+    "i": 65,
+    "name": "Al-Ezz Oud Perfumes",
+    "nameAr": "عطور العز للعود",
+    "cat": "perfumes",
+    "price": 22000,
+    "desc": "A selected collection of Al-Ezz Oud perfumes.",
+    "descAr": "لعشاق عطور العز للعود، وفرنا لكم أفضل مجموعة من العطور التي تناسب الذوق المميز والراقي.",
+    "features": [
+      "عطور العز للعود",
+      "تشكيلة مختارة",
+      "روائح راقية وثابتة",
+      "متوفر بالجملة والتجزئة"
+    ],
+    "sku": "FB-65",
+    "image": "/products/images/zeina-65-al-ezz-oud.jpg",
+    "video": "/products/videos/zeina-65-al-ezz-oud.mp4"
+  },
+  {
+    "i": 66,
+    "name": "Saudi Brands Collection",
+    "nameAr": "تشكيلة البرندات السعودية",
+    "cat": "perfumes",
+    "price": 25000,
+    "desc": "A curated collection of the most famous Saudi perfume brands.",
+    "descAr": "أشهر البرندات السعودية في مكان واحد: لافرين، عساف، دخوني، لابونير، إبراق، الماجد للعود، العز للعود، زيفورا، أفنان وفرنش أفينو. تشكيلة متنوعة تناسب كل الأذواق.",
+    "features": [
+      "أشهر البرندات السعودية",
+      "خيارات متنوعة للعطور اليومية والفاخرة",
+      "مناسب للهدايا والمشاريع",
+      "متوفر بالجملة والتجزئة"
+    ],
+    "sku": "FB-66",
+    "image": "/products/images/zeina-66-saudi-brands.jpg",
+    "video": "/products/videos/zeina-66-saudi-brands.mp4"
+  },
+  {
+    "i": 67,
+    "name": "Half Million Zyora",
+    "nameAr": "عطر هاف مليون من زيفورا",
+    "cat": "perfumes",
+    "price": 24000,
+    "featured": true,
+    "desc": "Half Million by Zyora with a fresh opening and a warm woody base.",
+    "descAr": "هاف مليون من زيفورا… عطر بحضور يسبقك. مقدمة منعشة من الجريب فروت والبرغموت، قلب من الورد والياسمين مع لمسة توابل دافئة، وقاعدة من خشب الأرز والمسك الأبيض والعنبر.",
+    "features": [
+      "عطر هاف مليون من زيفورا",
+      "مقدمة منعشة وقلب زهري دافئ",
+      "قاعدة خشبية فاخرة",
+      "ثبات يترك انطباعًا لا يُنسى"
+    ],
+    "sku": "FB-67",
+    "image": "/products/images/zeina-67-half-million.jpg",
+    "video": "/products/videos/zeina-67-half-million.mp4"
+  },
+  {
+    "i": 88,
+    "name": "Boost Zyora Perfume",
+    "nameAr": "عطر بوست من زيفورا",
+    "cat": "perfumes",
+    "price": 23000,
+    "desc": "Boost by Zyora, a fresh and elegant summer perfume.",
+    "descAr": "بوست من زيفورا… عطر صيفي منعش برائحة نظيفة وأنيقة تلفت الانتباه بدون مبالغة. برند سعودي بإحساس عالمي، لمن يريد توقيعًا خاصًا في الصيف.",
+    "features": [
+      "عطر بوست من زيفورا",
+      "انتعاش صيفي أنيق",
+      "رائحة نظيفة وثبات جيد",
+      "مناسب للاستخدام اليومي"
+    ],
+    "sku": "FB-88",
+    "image": "/products/images/zeina-88-boost-zyora.jpg",
+    "video": "/products/videos/zeina-88-boost-zyora.mp4"
+  },
+  {
+    "i": 89,
+    "name": "Qarsh Zyora Perfume",
+    "nameAr": "عطر قرش من زيفورا",
+    "cat": "perfumes",
+    "price": 26000,
+    "featured": true,
+    "desc": "Qarsh by Zyora, a bold masculine perfume with strong projection.",
+    "descAr": "قرش من زيفورا… ليس لكل رجل، بل للرجل الذي يحب أن يُعرف بحضوره قبل اسمه. رائحة قوية وجريئة تترك أثرًا لا يُنسى، وثبات يدوم لساعات.",
+    "features": [
+      "عطر قرش من زيفورا",
+      "رائحة قوية وجريئة",
+      "ثبات عالي وفوحان مميز",
+      "للرجل الذي يريد حضورًا مختلفًا"
+    ],
+    "sku": "FB-89",
+    "image": "/products/images/zeina-89-qarsh-zyora.jpg",
+    "video": "/products/videos/zeina-89-qarsh-zyora.mp4"
+  },
+  {
+    "i": 109,
+    "name": "Sea Dor Beauty Box",
+    "nameAr": "بوكس الجمال من سي دور",
+    "cat": "makeup",
+    "price": 28000,
+    "featured": true,
+    "desc": "Sea Dor complete beauty box with makeup essentials for a full look.",
+    "descAr": "بوكس الجمال من سي دور (Sea Dor): باليتان آيشادو، بلاشر، بودرة مضغوطة، فاونديشن، برايمر، ماسكارا، آيلاينر، أقلام تحديد، 4 روجات سائلة، 4 روجات ستيك، 4 طلاء أظافر وأكثر. كل ما تحتاجينه لإطلالة كاملة في بوكس واحد.",
+    "features": [
+      "بوكس مكياج متكامل من سي دور",
+      "باليتات وألوان متنوعة",
+      "منتجات وجه وعيون وشفاه وأظافر",
+      "مثالي للاستخدام أو الإهداء"
+    ],
+    "sku": "FB-109",
+    "image": "/products/images/zeina-109-sea-dor-box.jpg",
+    "video": "/products/videos/zeina-109-sea-dor-box.mp4"
+  },
+  {
+    "i": 122,
+    "name": "Orquette Pink Women Set",
+    "nameAr": "بكج أورقيت بينك النسائي",
+    "cat": "perfumes",
+    "price": 32000,
+    "featured": true,
+    "desc": "Orquette Pink women's set from Assaf with five perfume experiences.",
+    "descAr": "بكج أورقيت بينك النسائي من عساف: عطر أورقيت بينك 200 مل، ميني أورقيت بينك 10 مل، معطر جسم، عطر ميس جريس دانس، وعطر ميس أورقيت. خمس تجارب عطرية أنثوية في بكج واحد فاخر.",
+    "features": [
+      "5 تجارب عطرية في بكج واحد",
+      "عطر 200 مل + ميني 10 مل",
+      "معطر جسم وعطران إضافيان",
+      "هدية نسائية فاخرة"
+    ],
+    "sku": "FB-122",
+    "image": "/products/images/zeina-122-orquette-pink-set.jpg",
+    "video": "/products/videos/zeina-122-orquette-pink-set.mp4"
+  },
+  {
+    "i": 130,
+    "name": "Brazilian Protein Offer",
+    "nameAr": "مجموعة البروتين البرازيلي — عرض خاص",
+    "cat": "haircare",
+    "price": 12000,
+    "originalPrice": 15000,
+    "desc": "Brazilian Protein hair set at a special offer price, with a free hair oil.",
+    "descAr": "عرض خاص على مجموعة البروتين البرازيلي للشعر: شامبو وماسك بزيت الأرغان والكرياتين والبروتين. تعالج الجفاف والهيشان والتقصف من أول استخدام، مع زيت شعر مجاني لفترة محدودة.",
+    "features": [
+      "شامبو + ماسك بروتين برازيلي",
+      "بزيت الأرغان والكرياتين",
+      "يعالج الجفاف والهيشان والتقصف",
+      "زيت شعر مجاني ضمن العرض"
+    ],
+    "sku": "FB-130",
+    "image": "/products/images/zeina-130-brazilian-protein-offer.jpg",
+    "video": "/products/videos/zeina-130-brazilian-protein-offer.mp4"
+  },
+  {
+    "i": 131,
+    "name": "Lavard Laverne Set",
+    "nameAr": "بكج لويارد من لافرين",
+    "cat": "perfumes",
+    "price": 35000,
+    "featured": true,
+    "desc": "Lavard by Laverne luxury set with a 120ml perfume and three matching pieces.",
+    "descAr": "بكج الفخامة من لافرين: عطر لويارد 120 مل، سنابل 10 مل، لويارد بخور، ولويارد ليدي. أربع قطع متنوعة تجمع بين العطر اليومي، اللمسة الشرقية، والنعومة الأنثوية في بكج فاخر.",
+    "features": [
+      "عطر لويارد 120 مل",
+      "سنابل 10 مل + لويارد بخور + لويارد ليدي",
+      "بكج فاخر متعدد الروائح",
+      "مثالي كهدية راقية"
+    ],
+    "sku": "FB-131",
+    "image": "/products/images/zeina-131-lavard-set.jpg",
+    "video": "/products/videos/zeina-131-lavard-set.mp4"
+  },
+  {
+    "i": 139,
+    "name": "MAYDREAM Dream Box",
+    "nameAr": "بوكس الأحلام من MAYDREAM",
+    "cat": "makeup",
+    "price": 32000,
+    "featured": true,
+    "desc": "MAYDREAM complete dream box with face, eye, lip and nail essentials.",
+    "descAr": "بوكس الأحلام من MAYDREAM: مجموعة شاملة تضم مكياج الوجه (برايمر، فاونديشن، كونسيلر، بودرة، باليت، بلاشر، هايلايتر)، مكياج العيون والحواجب، أرواج وقلوس، طقم فرش احترافي، مزيل مكياج، فيكس بلس، ومنتجات أظافر. إطلالة كاملة في بوكس واحد.",
+    "features": [
+      "بوكس مكياج شامل من MAYDREAM",
+      "مكياج وجه وعيون وشفاه",
+      "طقم فرش وأدوات عناية",
+      "تغليف فاخر جاهز للإهداء"
+    ],
+    "sku": "FB-139",
+    "image": "/products/images/zeina-139-maydream-dream-box.jpg",
+    "video": "/products/videos/zeina-139-maydream-dream-box.mp4"
+  }
+]
