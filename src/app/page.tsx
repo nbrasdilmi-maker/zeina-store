@@ -7,6 +7,8 @@ import {
   Heart,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  LayoutGrid,
   Star,
   MessageCircle,
   User,
@@ -27,7 +29,7 @@ import {
   Shield,
   ArrowLeft,
 } from "lucide-react";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -73,12 +75,15 @@ interface Product {
   originalPrice?: number;
   mainImage: string;
   stock: number;
+  inStock?: boolean;
   isFeatured: boolean;
   categoryId?: string;
   category?: {
     id: string;
     name: string;
     nameAr: string;
+    slug?: string;
+    parentId?: string | null;
   };
 }
 
@@ -124,10 +129,61 @@ function HomeContent() {
   // Products and categories state
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [isCategoriesDropdownOpen, setIsCategoriesDropdownOpen] =
+    useState(false);
 
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [heroBanners, setHeroBanners] = useState<any[]>([]);
   const [promoAds, setPromoAds] = useState<any[]>([]);
+
+  // تجميع المنتجات حسب القسم الرئيسي
+  const groupedProducts = useMemo(() => {
+    const parentById = new Map<string, Category>();
+    const parentByChildId = new Map<string, Category>();
+    for (const parent of categories) {
+      parentById.set(parent.id, parent);
+      parent.children?.forEach((child) => parentByChildId.set(child.id, parent));
+    }
+    const groups = new Map<string, { category: Category | null; items: Product[] }>();
+    for (const product of products) {
+      const categoryId = product.category?.id || product.categoryId;
+      const parent =
+        (categoryId ? parentByChildId.get(categoryId) : undefined) ||
+        (categoryId ? parentById.get(categoryId) : undefined) ||
+        null;
+      const key = parent?.id || "__other__";
+      const entry = groups.get(key) || { category: parent, items: [] };
+      entry.items.push(product);
+      groups.set(key, entry);
+    }
+    const ordered = [...groups.values()].filter((g) => g.items.length > 0);
+    ordered.sort((a, b) => {
+      if (!a.category) return 1;
+      if (!b.category) return -1;
+      const orderA = categories.findIndex((c) => c.id === a.category?.id);
+      const orderB = categories.findIndex((c) => c.id === b.category?.id);
+      return orderA - orderB;
+    });
+    return ordered;
+  }, [products, categories]);
+
+  const handleAddToCart = (product: Product, event?: React.MouseEvent) => {
+    event?.stopPropagation();
+    addToCart({
+      productId: product.id,
+      name: product.name,
+      nameAr: product.nameAr,
+      price: product.price,
+      originalPrice: product.originalPrice,
+      image: product.mainImage,
+      quantity: 1,
+      stock: product.stock || 20,
+    });
+    toast({
+      title: "تمت الإضافة إلى السلة",
+      description: `تمت إضافة «${product.nameAr}» إلى سلة التسوق`,
+    });
+  };
 
   // Cart and Wishlist
   const {
@@ -280,12 +336,13 @@ function HomeContent() {
     }
   }, [searchParams]);
 
-  // Fetch featured products, categories, banners, and ads
+  // Fetch all products (grouped by category), categories, banners, and ads
   useEffect(() => {
     const fetchData = async () => {
       setIsLoadingProducts(true);
       try {
-        const productsRes = await fetch("/api/products?isFeatured=true");
+        // جلب جميع المنتجات لعرضها مصنّفة حسب الأقسام
+        const productsRes = await fetch("/api/products");
         if (productsRes.ok) {
           const productsData = await productsRes.json();
           setProducts(productsData.products || []);
@@ -335,7 +392,7 @@ function HomeContent() {
     channel.bind("public-update", async () => {
       // تحديث المنتجات والتصنيفات في الخلفية (بصمت وبدون ظهور شاشة التحميل)
       try {
-        const productsRes = await fetch("/api/products?isFeatured=true");
+        const productsRes = await fetch("/api/products");
         if (productsRes.ok) {
           const productsData = await productsRes.json();
           setProducts(productsData.products || []);
@@ -709,13 +766,13 @@ function HomeContent() {
           </section>
         )}
         {/* Categories Section */}
-        <section className="py-20 md:py-28 bg-white">
+        <section className="py-16 md:py-28 bg-white">
           <div className="container mx-auto px-4">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-center mb-16"
+              className="text-center mb-10 md:mb-16"
             >
               <span className="text-[#C9A962] text-sm tracking-[0.3em] uppercase mb-4 block">
                 استكشف
@@ -726,6 +783,156 @@ function HomeContent() {
               <p className="text-[#8B7355] max-w-xl mx-auto text-lg">
                 اكتشف مجموعتنا المتنوعة من المنتجات الفاخرة المختارة بعناية
               </p>
+
+              {/* زر الأقسام + قائمة منسدلة احترافية */}
+              <div className="relative mt-8 flex flex-wrap items-center justify-center gap-3">
+                <button
+                  type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={isCategoriesDropdownOpen}
+                  onClick={() =>
+                    setIsCategoriesDropdownOpen((open) => !open)
+                  }
+                  className="group inline-flex items-center gap-2.5 rounded-full border border-[#C9A962]/50 bg-gradient-to-l from-[#FAF7F2] to-white px-5 py-3 shadow-sm transition-all hover:border-[#C9A962] hover:shadow-md"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#C9A962] to-[#B8956E] text-white">
+                    <LayoutGrid className="h-4 w-4" />
+                  </span>
+                  <span className="text-sm font-bold text-[#3D3021]">
+                    الأقسام
+                  </span>
+                  <span className="rounded-full bg-[#C9A962]/10 px-2 py-0.5 text-[11px] font-bold text-[#8B7355]">
+                    {categories.length || 15}
+                  </span>
+                  <ChevronDown
+                    className={`h-4 w-4 text-[#C9A962] transition-transform ${
+                      isCategoriesDropdownOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    window.dispatchEvent(new Event("zeina:open-categories"))
+                  }
+                  className="inline-flex items-center gap-2 rounded-full border border-[#3D3021]/15 bg-white px-5 py-3 text-sm font-bold text-[#3D3021] shadow-sm transition-all hover:border-[#C9A962] hover:shadow-md md:hidden"
+                >
+                  <LayoutGrid className="h-4 w-4 text-[#C9A962]" />
+                  تسوقي حسب الأقسام
+                </button>
+
+                <Link
+                  href="/categories"
+                  className="inline-flex items-center gap-2 rounded-full px-4 py-3 text-sm font-bold text-[#8B7355] transition-colors hover:text-[#3D3021]"
+                >
+                  جميع الأقسام
+                  <ChevronLeft className="h-4 w-4 text-[#C9A962]" />
+                </Link>
+
+                <AnimatePresence>
+                  {isCategoriesDropdownOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setIsCategoriesDropdownOpen(false)}
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.2 }}
+                        role="menu"
+                        aria-label="الأقسام"
+                        className="absolute right-1/2 top-full z-20 mt-3 w-[min(92vw,46rem)] translate-x-1/2 overflow-hidden rounded-3xl border border-[#EDE5DA] bg-[#FFFDF9] text-right shadow-2xl"
+                      >
+                        <div className="flex items-center justify-between border-b border-[#F1E9DC] bg-gradient-to-l from-[#FAF7F2] to-white px-5 py-4">
+                          <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[#C9A962]">
+                              زينة
+                            </p>
+                            <p className="text-base font-bold text-[#3D3021]">
+                              تسوقي حسب الأقسام
+                            </p>
+                          </div>
+                          <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-[#8B7355] shadow-sm">
+                            {categories.length} قسماً
+                          </span>
+                        </div>
+
+                        <div className="max-h-[55vh] overflow-y-auto p-4">
+                          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                            {categories.map((category) => {
+                              const productCount =
+                                category.productCount ??
+                                category._count?.products ??
+                                0;
+                              return (
+                                <Link
+                                  key={category.id}
+                                  href={`/products?category=${category.slug}`}
+                                  onClick={() =>
+                                    setIsCategoriesDropdownOpen(false)
+                                  }
+                                  className="group flex items-center gap-3 rounded-2xl border border-[#EDE5DA] bg-white p-3 shadow-sm transition-all hover:border-[#C9A962]/60 hover:shadow-md"
+                                >
+                                  <span className="h-11 w-11 shrink-0 overflow-hidden rounded-xl ring-1 ring-[#C9A962]/25">
+                                    <img
+                                      src={
+                                        category.image ||
+                                        "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200"
+                                      }
+                                      alt={category.nameAr || category.name}
+                                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                    />
+                                  </span>
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block truncate text-sm font-bold text-[#3D3021]">
+                                      {category.nameAr || category.name}
+                                    </span>
+                                    <span className="mt-0.5 block text-[11px] text-[#A69B8D]">
+                                      {productCount} منتج ·{" "}
+                                      {category.children?.length || 0} فئات
+                                    </span>
+                                  </span>
+                                  <ChevronLeft className="h-4 w-4 shrink-0 text-[#C9A962] opacity-50 transition-all group-hover:-translate-x-0.5 group-hover:opacity-100" />
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#F1E9DC] bg-white px-5 py-4">
+                          <span className="text-xs text-[#A69B8D]">
+                            {categories.length} قسماً رئيسياً وفئات فرعية
+                            مختارة بعناية
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <Link
+                              href="/categories"
+                              onClick={() =>
+                                setIsCategoriesDropdownOpen(false)
+                              }
+                              className="text-sm font-bold text-[#8B7355] hover:text-[#3D3021]"
+                            >
+                              كل الأقسام
+                            </Link>
+                            <Link
+                              href="/products"
+                              onClick={() =>
+                                setIsCategoriesDropdownOpen(false)
+                              }
+                              className="rounded-full bg-gradient-to-l from-[#C9A962] to-[#B8956E] px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:from-[#B8956E] hover:to-[#9A7B4F]"
+                            >
+                              تصفح جميع المنتجات
+                            </Link>
+                          </div>
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
             </motion.div>
 
             {categories.length > 0 ? (
@@ -794,159 +1001,254 @@ function HomeContent() {
           </div>
         </section>
 
-        {/* Products Section */}
+        {/* Products Section - grouped by category */}
         <section className="py-20 md:py-28 bg-gradient-to-b from-[#FAF7F2] to-white">
           <div className="container mx-auto px-4">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-center mb-16"
+              className="text-center mb-12 md:mb-16"
             >
               <span className="text-[#C9A962] text-sm tracking-[0.3em] uppercase mb-4 block">
-                مميزة
+                تشكيلتنا
               </span>
               <h2 className="text-4xl md:text-5xl font-bold text-[#3D3021] mb-4">
-                المنتجات المميزة
+                المنتجات حسب الأقسام
               </h2>
               <p className="text-[#8B7355] max-w-xl mx-auto text-lg">
-                اكتشف أبرز منتجاتنا المختارة بعناية فائقة
+                كل قسم في مكان واحد — منتجات العطور في قسمها، ومنتجات التجميل
+                في قسمها، وكل فئة مرتبة بعناية
               </p>
             </motion.div>
 
             {isLoadingProducts ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <Card key={i} className="overflow-hidden border-0 shadow-lg">
-                    <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
-                    <CardContent className="p-4 space-y-3">
-                      <div className="h-3 bg-gray-200 rounded animate-pulse w-1/3" />
-                      <div className="h-4 bg-gray-200 rounded animate-pulse" />
-                      <div className="h-4 bg-gray-200 rounded animate-pulse w-2/3" />
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Card
+                    key={i}
+                    className="overflow-hidden border-0 rounded-2xl shadow-lg"
+                  >
+                    <div className="aspect-square animate-pulse bg-gradient-to-br from-gray-100 to-gray-200" />
+                    <CardContent className="space-y-3 p-4">
+                      <div className="h-3 w-1/3 animate-pulse rounded bg-gray-200" />
+                      <div className="h-4 animate-pulse rounded bg-gray-200" />
+                      <div className="h-4 w-2/3 animate-pulse rounded bg-gray-200" />
                     </CardContent>
                   </Card>
                 ))}
               </div>
             ) : products.length === 0 ? (
-              <div className="text-center py-20">
-                <Sparkles className="h-16 w-16 mx-auto text-[#C9A962]/50 mb-4" />
-                <p className="text-[#8B7355] text-lg">
+              <div className="py-20 text-center">
+                <Sparkles className="mx-auto mb-4 h-16 w-16 text-[#C9A962]/50" />
+                <p className="text-lg text-[#8B7355]">
                   لا توجد منتجات مميزة حالياً
                 </p>
               </div>
+            ) : groupedProducts.length === 0 ? (
+              <div className="py-20 text-center">
+                <Sparkles className="mx-auto mb-4 h-16 w-16 text-[#C9A962]/50" />
+                <p className="text-lg text-[#8B7355]">
+                  جاري تحميل الأقسام والمنتجات...
+                </p>
+              </div>
             ) : (
-              <motion.div
-                variants={staggerContainer}
-                initial="initial"
-                whileInView="animate"
-                viewport={{ once: true }}
-                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8"
-              >
-                {products.map((product, index) => (
-                  <motion.div
-                    key={product.id}
-                    variants={fadeInUp}
-                    whileHover={{ y: -10 }}
-                    className="group cursor-pointer"
-                    onClick={() => router.push(`/products/${product.id}`)}
-                  >
-                    <Card className="overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-500 bg-white rounded-2xl">
-                      <div className="relative aspect-square overflow-hidden">
-                        <img
-                          src={product.mainImage}
-                          alt={product.nameAr}
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        />
-                        <div className="absolute top-3 right-3 flex flex-col gap-2">
-                          {product.isFeatured && (
-                            <Badge className="bg-gradient-to-r from-[#C9A962] to-[#B8956E] text-white border-0 px-3 py-1 rounded-full">
-                              <Star className="h-3 w-3 ml-1" />
-                              مميز
-                            </Badge>
-                          )}
-                          {product.originalPrice &&
-                            product.originalPrice > product.price && (
-                              <Badge className="bg-gradient-to-r from-rose-500 to-pink-500 text-white border-0 px-3 py-1 rounded-full">
-                                -
-                                {Math.round(
-                                  (1 - product.price / product.originalPrice) *
-                                    100,
-                                )}
-                                %
-                              </Badge>
-                            )}
-                        </div>
-
-                        {/* Quick Actions */}
-                        <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              className="flex-1 bg-gradient-to-r from-[#C9A962] to-[#B8956E] text-white rounded-full hover-neon-effect"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openWhatsApp(
-                                  `استفسار عن منتج: ${product.nameAr}`,
-                                );
-                              }}
-                            >
-                              <MessageCircle className="h-4 w-4 ml-1" />
-                              استفسار
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="bg-white/90 hover:bg-white rounded-full"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleWishlist({
-                                  productId: product.id,
-                                  name: product.name,
-                                  nameAr: product.nameAr,
-                                  price: product.price,
-                                  originalPrice: product.originalPrice,
-                                  image: product.mainImage,
-                                });
-                                toast({
-                                  title: isInWishlist(product.id)
-                                    ? "تمت الإزالة"
-                                    : "تمت الإضافة",
-                                  description: isInWishlist(product.id)
-                                    ? "تم إزالة المنتج من المفضلة"
-                                    : "تم إضافة المنتج للمفضلة",
-                                });
-                              }}
-                            >
-                              <Heart
-                                className={`h-4 w-4 ${isInWishlist(product.id) ? "fill-rose-500 text-rose-500" : ""}`}
+              <div className="space-y-12 md:space-y-16">
+                {groupedProducts.map((group) => {
+                  const groupCategory = group.category;
+                  const title = groupCategory
+                    ? groupCategory.nameAr || groupCategory.name
+                    : "تشكيلة مختارة";
+                  const groupSlug = groupCategory?.slug || "";
+                  const shownProducts = group.items;
+                  return (
+                    <div
+                      key={groupCategory?.id || "__other__"}
+                      className="overflow-hidden rounded-[28px] border border-[#EDE5DA] bg-white/60 shadow-sm"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F1E9DC] bg-gradient-to-l from-[#FAF7F2] to-white px-4 py-4 md:px-6">
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#FAF7F2] ring-1 ring-[#C9A962]/25">
+                            {groupCategory?.image ? (
+                              <img
+                                src={groupCategory.image}
+                                alt={title}
+                                className="h-full w-full object-cover"
                               />
-                            </Button>
+                            ) : (
+                              <Sparkles className="h-5 w-5 text-[#C9A962]" />
+                            )}
+                          </span>
+                          <div>
+                            <h3 className="text-lg font-bold text-[#3D3021] md:text-xl">
+                              {title}
+                            </h3>
+                            <p className="mt-0.5 text-xs text-[#A69B8D]">
+                              {group.items.length} منتج ·{" "}
+                              {groupCategory?.children?.length || 0} فئة فرعية
+                            </p>
                           </div>
                         </div>
+                        {groupSlug ? (
+                          <Link
+                            href={`/products?category=${groupSlug}`}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-[#C9A962] px-4 py-2 text-sm font-bold text-[#8B7355] transition-colors hover:bg-[#C9A962] hover:text-white"
+                          >
+                            عرض الكل
+                            <ChevronLeft className="h-4 w-4" />
+                          </Link>
+                        ) : (
+                          <Link
+                            href="/products"
+                            className="inline-flex items-center gap-1.5 rounded-full border border-[#C9A962] px-4 py-2 text-sm font-bold text-[#8B7355] transition-colors hover:bg-[#C9A962] hover:text-white"
+                          >
+                            عرض الكل
+                            <ChevronLeft className="h-4 w-4" />
+                          </Link>
+                        )}
                       </div>
-                      <CardContent className="p-5">
-                        <p className="text-xs text-[#C9A962] font-medium mb-2 uppercase tracking-wider">
-                          {product.category?.nameAr || "بدون تصنيف"}
-                        </p>
-                        <h3 className="font-semibold text-[#3D3021] text-base mb-3 line-clamp-2 min-h-[48px]">
-                          {product.nameAr}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl font-bold text-[#8B7355]">
-                            {product.price.toLocaleString()} ر.ي
-                          </span>
-                          {product.originalPrice &&
-                            product.originalPrice > product.price && (
-                              <span className="text-sm text-[#A69B8D] line-through">
-                                {product.originalPrice.toLocaleString()}
-                              </span>
-                            )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-              </motion.div>
+
+                      <motion.div
+                        variants={staggerContainer}
+                        initial="initial"
+                        whileInView="animate"
+                        viewport={{ once: true }}
+                        className="grid grid-cols-2 gap-3 p-4 sm:gap-4 md:grid-cols-4 md:p-6 lg:grid-cols-6"
+                      >
+                        {shownProducts.map((product) => (
+                          <motion.div
+                            key={product.id}
+                            variants={fadeInUp}
+                            whileHover={{ y: -6 }}
+                            className="group cursor-pointer"
+                            onClick={() =>
+                              router.push(`/products/${product.id}`)
+                            }
+                          >
+                            <Card className="overflow-hidden rounded-2xl border-0 bg-white shadow-lg transition-all duration-500 hover:shadow-2xl">
+                              <div className="relative aspect-square overflow-hidden">
+                                <img
+                                  src={product.mainImage}
+                                  alt={product.nameAr}
+                                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                />
+                                <div className="absolute right-3 top-3 flex flex-col gap-2">
+                                  {product.isFeatured && (
+                                    <Badge className="rounded-full border-0 bg-gradient-to-r from-[#C9A962] to-[#B8956E] px-3 py-1 text-white">
+                                      <Star className="ml-1 h-3 w-3" />
+                                      مميز
+                                    </Badge>
+                                  )}
+                                  {product.originalPrice &&
+                                    product.originalPrice > product.price && (
+                                      <Badge className="rounded-full border-0 bg-gradient-to-r from-rose-500 to-pink-500 px-3 py-1 text-white">
+                                        -
+                                        {Math.round(
+                                          (1 -
+                                            product.price /
+                                              product.originalPrice) *
+                                            100,
+                                        )}
+                                        %
+                                      </Badge>
+                                    )}
+                                </div>
+
+                                {/* زر السلة العائم على الصورة */}
+                                <button
+                                  type="button"
+                                  aria-label={`إضافة ${product.nameAr} إلى السلة`}
+                                  onClick={(e) => handleAddToCart(product, e)}
+                                  className="absolute left-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-[#3D3021] shadow-lg transition-all hover:scale-110 hover:bg-[#C9A962] hover:text-white"
+                                >
+                                  <ShoppingCart className="h-4 w-4" />
+                                </button>
+
+                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      className="flex-1 rounded-full bg-gradient-to-r from-[#C9A962] to-[#B8956E] text-white hover-neon-effect"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openWhatsApp(
+                                          `استفسار عن منتج: ${product.nameAr}`,
+                                        );
+                                      }}
+                                    >
+                                      <MessageCircle className="ml-1 h-4 w-4" />
+                                      استفسار
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="rounded-full bg-white/90 hover:bg-white"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleWishlist({
+                                          productId: product.id,
+                                          name: product.name,
+                                          nameAr: product.nameAr,
+                                          price: product.price,
+                                          originalPrice: product.originalPrice,
+                                          image: product.mainImage,
+                                        });
+                                        toast({
+                                          title: isInWishlist(product.id)
+                                            ? "تمت الإزالة"
+                                            : "تمت الإضافة",
+                                          description: isInWishlist(product.id)
+                                            ? "تم إزالة المنتج من المفضلة"
+                                            : "تم إضافة المنتج للمفضلة",
+                                        });
+                                      }}
+                                    >
+                                      <Heart
+                                        className={`h-4 w-4 ${isInWishlist(product.id) ? "fill-rose-500 text-rose-500" : ""}`}
+                                      />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                              <CardContent className="p-3.5 md:p-4">
+                                <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-[#C9A962] md:text-xs">
+                                  {product.category?.nameAr || title}
+                                </p>
+                                <h4 className="mb-2 min-h-[40px] line-clamp-2 text-sm font-semibold text-[#3D3021] md:min-h-[48px] md:text-base">
+                                  {product.nameAr}
+                                </h4>
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                                    <span className="whitespace-nowrap text-base font-bold text-[#8B7355] md:text-lg">
+                                      {product.price.toLocaleString()} ر.ي
+                                    </span>
+                                    {product.originalPrice &&
+                                      product.originalPrice > product.price && (
+                                        <span className="text-xs line-through text-[#A69B8D] md:text-sm">
+                                          {product.originalPrice.toLocaleString()}
+                                        </span>
+                                      )}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    aria-label={`إضافة ${product.nameAr} إلى السلة`}
+                                    onClick={(e) =>
+                                      handleAddToCart(product, e)
+                                    }
+                                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#C9A962] to-[#B8956E] text-white shadow-md transition-all hover:scale-110 hover:shadow-lg"
+                                  >
+                                    <ShoppingCart className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        ))}
+                      </motion.div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
 
             <div className="text-center mt-16">

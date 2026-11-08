@@ -141,6 +141,18 @@ export function Navbar({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  // فتح لوحة الأقسام من أي زر مخصص (مثل زر الأقسام في قسم تصفح الفئات بالصفحة الرئيسية)
+  useEffect(() => {
+    const openCategories = () => {
+      setIsCategoriesMenuOpen(true);
+      loadCategories();
+    };
+    window.addEventListener("zeina:open-categories", openCategories);
+    return () =>
+      window.removeEventListener("zeina:open-categories", openCategories);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const navLinks = [
     { href: "/", label: "الرئيسية" },
     { href: "/products", label: "المنتجات" },
@@ -728,19 +740,7 @@ export function Navbar({
             </div>
           </div>
 
-          {/* زر الأقسام للجوال - خارج القائمة الجانبية */}
-          <button
-            type="button"
-            onClick={() => {
-              setIsCategoriesMenuOpen(true);
-              loadCategories();
-            }}
-            aria-label="تسوقي حسب الأقسام"
-            className="group flex shrink-0 items-center gap-2 rounded-full border border-[#C9A962]/40 bg-gradient-to-l from-[#FAF7F2] to-white px-3 py-2 shadow-sm transition-all hover:border-[#C9A962] hover:shadow-md lg:hidden"
-          >
-            <LayoutGrid className="h-5 w-5 text-[#8B7355] transition-colors group-hover:text-[#C9A962]" />
-            <span className="text-xs font-bold text-[#3D3021]">الأقسام</span>
-          </button>
+          {/* زر الأقسام نُقل إلى قسم «تصفح الفئات» في الصفحة الرئيسية بطلب العميل */}
         </div>
       </div>
 
