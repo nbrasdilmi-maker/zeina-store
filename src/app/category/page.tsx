@@ -13,6 +13,8 @@ interface Category {
   name: string;
   nameAr: string;
   image?: string;
+  parentId?: string | null;
+  productCount?: number;
   _count?: { products: number };
 }
 
@@ -35,7 +37,13 @@ export default function CategoriesPage() {
     try {
       const response = await fetch("/api/categories");
       const data = await response.json();
-      setCategories(data.categories || []);
+      setCategories(
+        data.tree?.length
+          ? data.tree
+          : (data.categories || []).filter(
+              (category: Category) => !category.parentId,
+            ),
+      );
     } catch (error) {
       console.error("Error fetching categories:", error);
     } finally {
@@ -134,7 +142,10 @@ export default function CategoriesPage() {
                           {category.nameAr}
                         </h3>
                         <p className="text-white/70 text-sm">
-                          {category._count?.products || 0} منتج
+                          {category.productCount ??
+                            category._count?.products ??
+                            0}{" "}
+                          منتج
                         </p>
                       </div>
                       <div className="absolute inset-0 border-4 border-[var(--gold)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />

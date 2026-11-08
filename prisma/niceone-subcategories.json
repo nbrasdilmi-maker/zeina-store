@@ -1,0 +1,142 @@
+[
+  {
+    "parent": "makeup",
+    "children": [
+      { "name": "Face", "nameAr": "الوجه", "slug": "makeup-face" },
+      { "name": "Eyes", "nameAr": "العيون", "slug": "makeup-eyes" },
+      { "name": "Lips", "nameAr": "الشفاه", "slug": "makeup-lips" },
+      { "name": "Makeup Tools", "nameAr": "أدوات المكياج", "slug": "makeup-tools" },
+      { "name": "Makeup Sets", "nameAr": "مجموعات المكياج", "slug": "makeup-sets" }
+    ]
+  },
+  {
+    "parent": "perfumes",
+    "children": [
+      { "name": "Women's Perfumes", "nameAr": "عطور نسائية", "slug": "perfumes-women" },
+      { "name": "Men's Perfumes", "nameAr": "عطور رجالية", "slug": "perfumes-men" },
+      { "name": "Unisex Perfumes", "nameAr": "عطور مشتركة", "slug": "perfumes-unisex" },
+      { "name": "Bakhoor & Oud", "nameAr": "بخور ودهن عود", "slug": "perfumes-oud" },
+      { "name": "Perfume Sets", "nameAr": "مجموعات عطور", "slug": "perfumes-sets" }
+    ]
+  },
+  {
+    "parent": "skincare",
+    "children": [
+      { "name": "Cleansers", "nameAr": "تنظيف البشرة", "slug": "skincare-cleansers" },
+      { "name": "Moisturizers", "nameAr": "مرطبات البشرة", "slug": "skincare-moisturizers" },
+      { "name": "Sun Care", "nameAr": "واقي الشمس", "slug": "skincare-sun" },
+      { "name": "Serums & Treatments", "nameAr": "سيرومات وعلاجات", "slug": "skincare-serums" },
+      { "name": "Masks", "nameAr": "ماسكات", "slug": "skincare-masks" }
+    ]
+  },
+  {
+    "parent": "haircare",
+    "children": [
+      { "name": "Shampoo & Conditioner", "nameAr": "شامبو وبلسم", "slug": "haircare-shampoo" },
+      { "name": "Hair Oils", "nameAr": "زيوت وعلاجات", "slug": "haircare-oils" },
+      { "name": "Hair Styling", "nameAr": "تصفيف الشعر", "slug": "haircare-styling" },
+      { "name": "Hair Color", "nameAr": "صبغات الشعر", "slug": "haircare-color" },
+      { "name": "Hair Protein", "nameAr": "بروتين الشعر", "slug": "haircare-protein" }
+    ]
+  },
+  {
+    "parent": "body-care",
+    "children": [
+      { "name": "Body Lotions", "nameAr": "لوشن ومرطبات", "slug": "body-lotions" },
+      { "name": "Body Scrubs", "nameAr": "مقشرات الجسم", "slug": "body-scrubs" },
+      { "name": "Body Wash", "nameAr": "صابون الاستحمام", "slug": "body-wash" },
+      { "name": "Deodorants", "nameAr": "مزيلات العرق", "slug": "body-deodorant" },
+      { "name": "Body Oils", "nameAr": "زيوت الجسم", "slug": "body-oils" }
+    ]
+  },
+  {
+    "parent": "nails",
+    "children": [
+      { "name": "Nail Polish", "nameAr": "طلاء الأظافر", "slug": "nails-polish" },
+      { "name": "Nail Tools", "nameAr": "أدوات العناية", "slug": "nails-tools" },
+      { "name": "Nail Accessories", "nameAr": "إكسسوارات الأظافر", "slug": "nails-accessories" },
+      { "name": "Nail Treatments", "nameAr": "علاجات الأظافر", "slug": "nails-treatments" }
+    ]
+  },
+  {
+    "parent": "gifts",
+    "children": [
+      { "name": "Gift Boxes", "nameAr": "بوكسات الهدايا", "slug": "gifts-boxes" },
+      { "name": "Perfume Gifts", "nameAr": "هدايا العطور", "slug": "gifts-perfumes" },
+      { "name": "Makeup Gifts", "nameAr": "هدايا المكياج", "slug": "gifts-makeup" },
+      { "name": "Gift Cards", "nameAr": "بطاقات هدايا", "slug": "gifts-cards" }
+    ]
+  },
+  {
+    "parent": "home-scents",
+    "children": [
+      { "name": "Room Sprays", "nameAr": "معطرات الجو", "slug": "home-sprays" },
+      { "name": "Scented Candles", "nameAr": "شموع معطرة", "slug": "home-candles" },
+      { "name": "Home Bakhoor", "nameAr": "بخور المنزل", "slug": "home-incense" },
+      { "name": "Diffusers", "nameAr": "فواحات", "slug": "home-diffusers" }
+    ]
+  },
+  {
+    "parent": "devices",
+    "children": [
+      { "name": "Hair Devices", "nameAr": "أجهزة تصفيف الشعر", "slug": "devices-hair" },
+      { "name": "Skin Devices", "nameAr": "أجهزة العناية بالبشرة", "slug": "devices-skin" },
+      { "name": "Makeup Devices", "nameAr": "أجهزة المكياج", "slug": "devices-makeup" },
+      { "name": "Electric Tools", "nameAr": "أدوات كهربائية", "slug": "devices-electric" }
+    ]
+  },
+  {
+    "parent": "health-nutrition",
+    "children": [
+      { "name": "Vitamins & Supplements", "nameAr": "فيتامينات ومكملات", "slug": "health-vitamins" },
+      { "name": "Weight Management", "nameAr": "منتجات التخسيس", "slug": "health-weight" },
+      { "name": "Teas & Herbs", "nameAr": "شاي وأعشاب", "slug": "health-teas" },
+      { "name": "Personal Care", "nameAr": "عناية شخصية", "slug": "health-personal" }
+    ]
+  },
+  {
+    "parent": "premium",
+    "children": [
+      { "name": "Premium Perfumes", "nameAr": "عطور فاخرة", "slug": "premium-perfumes" },
+      { "name": "Premium Makeup", "nameAr": "مكياج فاخر", "slug": "premium-makeup" },
+      { "name": "Premium Sets", "nameAr": "مجموعات فاخرة", "slug": "premium-sets" },
+      { "name": "Premium Gifts", "nameAr": "هدايا فاخرة", "slug": "premium-gifts" }
+    ]
+  },
+  {
+    "parent": "lenses",
+    "children": [
+      { "name": "Colored Lenses", "nameAr": "عدسات ملونة", "slug": "lenses-colored" },
+      { "name": "Clear Lenses", "nameAr": "عدسات شفافة", "slug": "lenses-clear" },
+      { "name": "Lens Solutions", "nameAr": "محاليل العدسات", "slug": "lenses-solutions" },
+      { "name": "Lens Accessories", "nameAr": "إكسسوارات العدسات", "slug": "lenses-accessories" }
+    ]
+  },
+  {
+    "parent": "home-bath",
+    "children": [
+      { "name": "Bath Essentials", "nameAr": "مستلزمات الحمام", "slug": "home-bath-essentials" },
+      { "name": "Towels", "nameAr": "مناشف", "slug": "home-bath-towels" },
+      { "name": "Home Decor", "nameAr": "ديكور المنزل", "slug": "home-bath-decor" },
+      { "name": "Home Tools", "nameAr": "أدوات منزلية", "slug": "home-bath-tools" }
+    ]
+  },
+  {
+    "parent": "accessories",
+    "children": [
+      { "name": "Jewelry", "nameAr": "مجوهرات", "slug": "accessories-jewelry" },
+      { "name": "Hair Accessories", "nameAr": "إكسسوارات الشعر", "slug": "accessories-hair" },
+      { "name": "Watches", "nameAr": "ساعات", "slug": "accessories-watches" },
+      { "name": "Eyewear", "nameAr": "نظارات", "slug": "accessories-eyewear" }
+    ]
+  },
+  {
+    "parent": "bags",
+    "children": [
+      { "name": "Handbags", "nameAr": "حقائب يد", "slug": "bags-handbags" },
+      { "name": "Backpacks", "nameAr": "حقائب ظهر", "slug": "bags-backpacks" },
+      { "name": "Wallets", "nameAr": "محافظ", "slug": "bags-wallets" },
+      { "name": "Travel Bags", "nameAr": "حقائب سفر", "slug": "bags-travel" }
+    ]
+  }
+]

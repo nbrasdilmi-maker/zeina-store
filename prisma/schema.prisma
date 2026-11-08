@@ -123,13 +123,17 @@ model Category {
   nameAr        String
   slug          String   @unique
   image         String?
+  parentId      String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   demoSessionId String? // عزل بيانات التجربة التجريبية
 
+  parent      Category?    @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[]   @relation("CategoryHierarchy")
   products    Product[]
   demoSession DemoSession? @relation(fields: [demoSessionId], references: [id])
 
+  @@index([parentId])
   @@map("categories")
 }
 

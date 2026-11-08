@@ -16,6 +16,11 @@ export async function GET(request: NextRequest) {
     const agentId = searchParams.get("agentId");
     const isFeatured = searchParams.get("isFeatured");
     const all = searchParams.get("all");
+    const search = searchParams.get("search")?.trim();
+    const minPrice = Number(searchParams.get("minPrice"));
+    const maxPrice = Number(searchParams.get("maxPrice"));
+    const inStock = searchParams.get("inStock");
+    const sort = searchParams.get("sort");
 
     // If "all=true", show all products including inactive ones (for admin)
     const where: Record<string, unknown> =
@@ -25,9 +30,52 @@ export async function GET(request: NextRequest) {
     // Unauthenticated/regular visitors only see the base catalog.
     where.demoSessionId = demoSessionId ?? null;
 
-    if (categoryId) where.categoryId = categoryId;
+    if (categoryId) {
+      // Accept either a category id or slug, and include subcategory products
+      // when a parent category is selected.
+      const category = await db.category.findFirst({
+        where: { OR: [{ id: categoryId }, { slug: categoryId }] },
+        include: { children: { select: { id: true } } },
+      });
+
+      if (category) {
+        where.categoryId = {
+          in: [category.id, ...category.children.map((child) => child.id)],
+        };
+      } else {
+        where.categoryId = categoryId;
+      }
+    }
+
     if (agentId) where.agentId = agentId;
     if (isFeatured === "true") where.isFeatured = true;
+    if (inStock === "true") where.inStock = true;
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { nameAr: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
+        { descriptionAr: { contains: search, mode: "insensitive" } },
+        { sku: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    if (searchParams.get("minPrice") !== null || searchParams.get("maxPrice") !== null) {
+      const price: Record<string, number> = {};
+      if (Number.isFinite(minPrice)) price.gte = minPrice;
+      if (Number.isFinite(maxPrice) && maxPrice > 0) price.lte = maxPrice;
+      where.price = price;
+    }
+
+    const orderBy: Record<string, "asc" | "desc"> =
+      sort === "price-low"
+        ? { price: "asc" }
+        : sort === "price-high"
+          ? { price: "desc" }
+          : sort === "name"
+            ? { nameAr: "asc" }
+            : { createdAt: "desc" };
 
     const products = await db.product.findMany({
       where,
@@ -41,9 +89,7 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy,
     });
 
     return NextResponse.json({ products });

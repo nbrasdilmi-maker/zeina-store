@@ -28,24 +28,54 @@ export async function GET(request: NextRequest) {
         _count: {
           select: { products: true },
         },
+        children: {
+          include: {
+            _count: {
+              select: { products: true },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
       },
-      orderBy: {
-        nameAr: "asc",
-      },
+      orderBy: { createdAt: "asc" },
     });
 
-    return NextResponse.json({ categories });
+    // A parent category represents everything inside its children too, so its
+    // displayed product count is the sum of direct and child products.
+    const tree = categories
+      .filter((category) => !category.parentId)
+      .map((category) => {
+        const children = category.children.map((child) => ({
+          ...child,
+          productCount: child._count.products,
+        }));
+        return {
+          ...category,
+          productCount:
+            category._count.products +
+            children.reduce((total, child) => total + child.productCount, 0),
+          children,
+        };
+      });
+
+    const flatCategories = categories.map((category) => ({
+      ...category,
+      productCount: category._count.products,
+    }));
+
+    return NextResponse.json({ categories: flatCategories, tree });
   } catch (error) {
     console.error("Get categories error:", error);
     
     // Return default categories if database error
     return NextResponse.json({
       categories: [
-        { id: "perfumes", name: "Perfumes", nameAr: "عطور", slug: "perfumes", _count: { products: 0 } },
-        { id: "makeup", name: "Makeup", nameAr: "مكياج", slug: "makeup", _count: { products: 0 } },
-        { id: "accessories", name: "Accessories", nameAr: "أكسسوارات", slug: "accessories", _count: { products: 0 } },
-        { id: "skincare", name: "Skincare", nameAr: "عناية", slug: "skincare", _count: { products: 0 } },
+        { id: "perfumes", name: "Perfumes", nameAr: "عطور", slug: "perfumes", productCount: 0, _count: { products: 0 } },
+        { id: "makeup", name: "Makeup", nameAr: "مكياج", slug: "makeup", productCount: 0, _count: { products: 0 } },
+        { id: "accessories", name: "Accessories", nameAr: "أكسسوارات", slug: "accessories", productCount: 0, _count: { products: 0 } },
+        { id: "skincare", name: "Skincare", nameAr: "عناية", slug: "skincare", productCount: 0, _count: { products: 0 } },
       ],
+      tree: [],
     });
   }
 }
@@ -60,7 +90,7 @@ export async function POST(request: NextRequest) {
     const demoSessionId = (authUser as any)?.demoSessionId;
 
     const body = await request.json();
-    const { name, nameAr, slug, image } = body;
+    const { name, nameAr, slug, image, parentId } = body;
 
     const category = await db.category.create({
       data: {
@@ -71,6 +101,7 @@ export async function POST(request: NextRequest) {
           demoSessionId,
         ),
         image,
+        parentId: parentId || null,
         demoSessionId,
       },
     });

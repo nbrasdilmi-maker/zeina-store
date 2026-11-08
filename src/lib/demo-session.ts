@@ -43,7 +43,9 @@ async function seedDemoCatalog(
   const suffix = demoSessionId.slice(-6);
 
   await db.$transaction(async (tx) => {
-    // 1) Categories (slug must stay unique across the whole table)
+    // 1) Categories (slug must stay unique across the whole table).
+    // Create parents and children first, then connect the hierarchy in a second
+    // pass because a child may be created before its parent.
     const baseCategories = await tx.category.findMany({
       where: { demoSessionId: null },
     });
@@ -60,6 +62,17 @@ async function seedDemoCatalog(
         },
       });
       categoryMap.set(category.id, cloned.id);
+    }
+
+    for (const category of baseCategories) {
+      if (!category.parentId) continue;
+      const clonedId = categoryMap.get(category.id);
+      const clonedParentId = categoryMap.get(category.parentId);
+      if (!clonedId || !clonedParentId) continue;
+      await tx.category.update({
+        where: { id: clonedId },
+        data: { parentId: clonedParentId },
+      });
     }
 
     // 2) Merchant profile for the demo merchant role

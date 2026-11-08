@@ -86,8 +86,12 @@ interface Category {
   id: string;
   name: string;
   nameAr: string;
+  slug: string;
   image?: string;
+  parentId?: string | null;
+  productCount?: number;
   _count?: { products: number };
+  children?: Category[];
 }
 
 // Animation variants
@@ -290,7 +294,13 @@ function HomeContent() {
         const categoriesRes = await fetch("/api/categories");
         if (categoriesRes.ok) {
           const categoriesData = await categoriesRes.json();
-          setCategories(categoriesData.categories || []);
+          setCategories(
+            categoriesData.tree?.length
+              ? categoriesData.tree
+              : (categoriesData.categories || []).filter(
+                  (category: Category) => !category.parentId,
+                ),
+          );
         }
 
         // 👈 إضافة جلب البنرات هنا
@@ -334,7 +344,13 @@ function HomeContent() {
         const categoriesRes = await fetch("/api/categories");
         if (categoriesRes.ok) {
           const categoriesData = await categoriesRes.json();
-          setCategories(categoriesData.categories || []);
+          setCategories(
+            categoriesData.tree?.length
+              ? categoriesData.tree
+              : (categoriesData.categories || []).filter(
+                  (category: Category) => !category.parentId,
+                ),
+          );
         }
 
         // تحديث البنرات لحظياً
@@ -718,40 +734,57 @@ function HomeContent() {
                 initial="initial"
                 whileInView="animate"
                 viewport={{ once: true }}
-                className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8"
+                className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-5"
               >
-                {categories.map((category, index) => (
-                  <Link
-                    key={category.id}
-                    href={`/products?category=${category.id}`}
-                  >
-                    <motion.div
-                      variants={fadeInUp}
-                      whileHover={{ y: -10, scale: 1.02 }}
-                      className="group relative aspect-[3/4] rounded-3xl overflow-hidden cursor-pointer shadow-xl hover:shadow-2xl transition-shadow duration-500"
+                {categories.map((category) => {
+                  const productCount =
+                    category.productCount ?? category._count?.products ?? 0;
+                  const childCount = category.children?.length || 0;
+
+                  return (
+                    <Link
+                      key={category.id}
+                      href={`/products?category=${category.slug}`}
+                      className="block h-full"
                     >
-                      <img
-                        src={
-                          category.image ||
-                          `https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400`
-                        }
-                        alt={category.name}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#3D3021]/90 via-[#3D3021]/30 to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                        <h3 className="text-xl md:text-2xl font-bold mb-1">
-                          {category.nameAr || category.name}
-                        </h3>
-                        <p className="text-white/70 text-sm flex items-center gap-1">
-                          <Sparkles className="h-3 w-3" />
-                          {category._count?.products || 0} منتج
-                        </p>
-                      </div>
-                      <div className="absolute inset-0 border-2 border-[#C9A962] opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl" />
-                    </motion.div>
-                  </Link>
-                ))}
+                      <motion.div
+                        variants={fadeInUp}
+                        whileHover={{ y: -4 }}
+                        className="group relative flex h-full items-center gap-3 overflow-hidden rounded-2xl border border-[#EDE5DA] bg-white p-3 shadow-sm transition-all duration-300 hover:border-[#C9A962]/60 hover:shadow-xl md:gap-4 md:p-4"
+                      >
+                        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-[#FAF7F2] ring-1 ring-[#C9A962]/25 md:h-14 md:w-14 md:rounded-2xl">
+                          <img
+                            src={
+                              category.image ||
+                              `https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200`
+                            }
+                            alt={category.nameAr || category.name}
+                            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#3D3021]/25 to-transparent" />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <h3 className="truncate text-sm font-bold text-[#3D3021] transition-colors group-hover:text-[#8B7355] md:text-base">
+                            {category.nameAr || category.name}
+                          </h3>
+                          <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-[#A69B8D] md:text-[11px]">
+                            <Sparkles className="h-3 w-3 shrink-0 text-[#C9A962]" />
+                            <span>{productCount} منتج</span>
+                            {childCount > 0 && (
+                              <>
+                                <span className="h-1 w-1 rounded-full bg-[#D8CFC3]" />
+                                <span>{childCount} فئات</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <ChevronLeft className="h-4 w-4 shrink-0 text-[#C9A962] opacity-40 transition-all duration-300 group-hover:-translate-x-0.5 group-hover:opacity-100" />
+                      </motion.div>
+                    </Link>
+                  );
+                })}
               </motion.div>
             ) : (
               <div className="text-center py-12">
