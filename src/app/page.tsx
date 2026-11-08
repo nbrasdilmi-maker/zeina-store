@@ -29,7 +29,7 @@ import {
   Shield,
   ArrowLeft,
 } from "lucide-react";
-import { useState, useEffect, Suspense, useMemo } from "react";
+import { useState, useEffect, Suspense, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -166,6 +166,90 @@ function HomeContent() {
     });
     return ordered;
   }, [products, categories]);
+
+  // بنرات إعلانية بين الأقسام (إعلانات حقيقية أو صور فاخرة بديلة)
+  const bannerItems = useMemo(() => {
+    if (promoAds.length > 0) {
+      return promoAds.map((ad) => ({
+        id: ad.id,
+        image: ad.image,
+        titleAr: ad.titleAr || "عروض زينة",
+        descriptionAr: ad.descriptionAr || "اكتشفي تشكيلتنا الفاخرة",
+        price: ad.price,
+        link: ad.link || "/products",
+        ctaAr: ad.ctaAr || "اكتشف العرض",
+      }));
+    }
+    return [
+      {
+        id: "fallback-1",
+        image: "https://images.unsplash.com/photo-1541643600914-78b084683601?w=1600",
+        titleAr: "عروض العطور الفاخرة",
+        descriptionAr: "تشكيلة مميزة من أرقى العطور العالمية",
+        price: null as number | null,
+        link: "/products?category=perfumes",
+        ctaAr: "تسوّقي الآن",
+      },
+      {
+        id: "fallback-2",
+        image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1600",
+        titleAr: "تشكيلة التجميل الجديدة",
+        descriptionAr: "كل ما تحتاجينه لإطلالة مثالية",
+        price: null as number | null,
+        link: "/products?category=makeup",
+        ctaAr: "اكتشفي المجموعة",
+      },
+      {
+        id: "fallback-3",
+        image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=1600",
+        titleAr: "إكسسوارات تليق بكِ",
+        descriptionAr: "قطع أنيقة تضيف لمسة فاخرة لكل إطلالة",
+        price: null as number | null,
+        link: "/products?category=accessories",
+        ctaAr: "تصفحي الأقسام",
+      },
+    ];
+  }, [promoAds]);
+
+  const [bannerIndex, setBannerIndex] = useState(0);
+  const [isBannerPaused, setIsBannerPaused] = useState(false);
+  useEffect(() => {
+    if (isBannerPaused || bannerItems.length <= 1) return;
+    const timer = setInterval(
+      () => setBannerIndex((i) => (i + 1) % bannerItems.length),
+      5000,
+    );
+    return () => clearInterval(timer);
+  }, [bannerItems.length, isBannerPaused]);
+
+  // تمرير أفقي لشريط القسم (RTL)
+  const stripRefsRef = useRef<Map<string, HTMLDivElement>>(new Map());
+  const progressRefsRef = useRef<Map<string, HTMLDivElement>>(new Map());
+  const scrollStrip = (groupId: string, direction: 1 | -1) => {
+    const el = stripRefsRef.current.get(groupId);
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    if (max <= 0) return;
+    // تنقّل فوري موثوق (يعمل حتى مع بطء الحركة) — السحب اللمسي يعمل بسلاسة
+    const page = el.clientWidth * 0.9;
+    const startNorm = Math.abs(el.scrollLeft);
+    const targetNorm = Math.min(max, Math.max(0, startNorm + direction * page));
+    const isNegative = el.scrollLeft <= 0;
+    el.scrollLeft = isNegative ? -targetNorm : targetNorm;
+    // تحديث شريط التقدّم مباشرة (قد لا يصل حدث التمرير دائماً)
+    const bar = progressRefsRef.current.get(groupId);
+    if (bar) {
+      bar.style.width = `${Math.max(8, Math.min(100, (targetNorm / max) * 100))}%`;
+    }
+  };
+  const handleStripScroll = (groupId: string, el: HTMLDivElement) => {
+    // تحديث مباشر لشريط التقدم بدون إعادة رسم (حتى لا يتوقف التمرير السلس)
+    const bar = progressRefsRef.current.get(groupId);
+    if (!bar) return;
+    const max = el.scrollWidth - el.clientWidth;
+    const ratio = max <= 0 ? 0 : Math.abs(el.scrollLeft) / max;
+    bar.style.width = `${Math.max(8, Math.min(100, ratio * 100))}%`;
+  };
 
   const handleAddToCart = (product: Product, event?: React.MouseEvent) => {
     event?.stopPropagation();
@@ -1053,19 +1137,25 @@ function HomeContent() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-12 md:space-y-16">
-                {groupedProducts.map((group) => {
+              <div className="space-y-10 md:space-y-14">
+                {groupedProducts.map((group, groupIndex) => {
                   const groupCategory = group.category;
                   const title = groupCategory
                     ? groupCategory.nameAr || groupCategory.name
                     : "تشكيلة مختارة";
                   const groupSlug = groupCategory?.slug || "";
                   const shownProducts = group.items;
+                  const groupId = groupCategory?.id || "__other__";
+                  const currentBanner =
+                    bannerItems[
+                      (bannerIndex + groupIndex) % bannerItems.length
+                    ];
                   return (
                     <div
                       key={groupCategory?.id || "__other__"}
-                      className="overflow-hidden rounded-[28px] border border-[#EDE5DA] bg-white/60 shadow-sm"
+                      className="space-y-10 md:space-y-14"
                     >
+                    <div className="overflow-hidden rounded-[28px] border border-[#EDE5DA] bg-white/60 shadow-sm">
                       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F1E9DC] bg-gradient-to-l from-[#FAF7F2] to-white px-4 py-4 md:px-6">
                         <div className="flex items-center gap-3">
                           <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#FAF7F2] ring-1 ring-[#C9A962]/25">
@@ -1108,19 +1198,23 @@ function HomeContent() {
                         )}
                       </div>
 
-                      <motion.div
-                        variants={staggerContainer}
-                        initial="initial"
-                        whileInView="animate"
-                        viewport={{ once: true }}
-                        className="grid grid-cols-2 gap-3 p-4 sm:gap-4 md:grid-cols-4 md:p-6 lg:grid-cols-6"
-                      >
+                      <div className="relative">
+                        <div
+                          ref={(el) => {
+                            if (el) stripRefsRef.current.set(groupId, el);
+                            else stripRefsRef.current.delete(groupId);
+                          }}
+                          onScroll={(e) =>
+                            handleStripScroll(groupId, e.currentTarget)
+                          }
+                          className="no-scrollbar flex gap-3 overflow-x-auto p-4 sm:gap-4 md:p-6"
+                        >
                         {shownProducts.map((product) => (
                           <motion.div
                             key={product.id}
                             variants={fadeInUp}
                             whileHover={{ y: -6 }}
-                            className="group cursor-pointer"
+                            className="group w-[calc(50%-6px)] shrink-0 cursor-pointer snap-start sm:w-[calc(33.333%-8.7px)] md:w-[calc(25%-9px)] lg:w-[calc(16.6667%-10px)]"
                             onClick={() =>
                               router.push(`/products/${product.id}`)
                             }
@@ -1244,7 +1338,120 @@ function HomeContent() {
                             </Card>
                           </motion.div>
                         ))}
-                      </motion.div>
+                        </div>
+
+                        {/* أسهم التنقل على الكمبيوتر */}
+                        {shownProducts.length > 2 && (
+                          <>
+                            <button
+                              type="button"
+                              aria-label="السابق"
+                              onClick={() => scrollStrip(groupId, -1)}
+                              className="absolute right-3 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-[#3D3021] shadow-lg transition hover:bg-[#C9A962] hover:text-white md:flex"
+                            >
+                              <ChevronRight className="h-5 w-5" />
+                            </button>
+                            <button
+                              type="button"
+                              aria-label="التالي"
+                              onClick={() => scrollStrip(groupId, 1)}
+                              className="absolute left-3 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-[#3D3021] shadow-lg transition hover:bg-[#C9A962] hover:text-white md:flex"
+                            >
+                              <ChevronLeft className="h-5 w-5" />
+                            </button>
+                          </>
+                        )}
+
+                        {/* شريط تقدّم ذهبي */}
+                        {shownProducts.length > 2 && (
+                          <div className="mx-6 mb-4 h-1 rounded-full bg-[#F1E9DC]">
+                            <div
+                              ref={(el) => {
+                                if (el) progressRefsRef.current.set(groupId, el);
+                                else progressRefsRef.current.delete(groupId);
+                              }}
+                              className="h-1 rounded-full bg-gradient-to-l from-[#C9A962] to-[#B8956E] transition-all duration-300"
+                              style={{ width: "8%" }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* بانر إعلاني متحرّك بين الأقسام */}
+                    {groupIndex < groupedProducts.length - 1 &&
+                      currentBanner && (
+                        <div
+                          className="relative overflow-hidden rounded-[28px] border border-[#EDE5DA] shadow-xl"
+                          onMouseEnter={() => setIsBannerPaused(true)}
+                          onMouseLeave={() => setIsBannerPaused(false)}
+                        >
+                          <AnimatePresence mode="wait">
+                            <motion.div
+                              key={currentBanner.id}
+                              initial={{ opacity: 0, scale: 1.04 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.99 }}
+                              transition={{ duration: 0.7 }}
+                              className="relative aspect-[16/9] cursor-pointer md:aspect-[21/7]"
+                              onClick={() =>
+                                router.push(currentBanner.link || "/products")
+                              }
+                            >
+                              <img
+                                src={currentBanner.image}
+                                alt={currentBanner.titleAr}
+                                className="absolute inset-0 h-full w-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-[#3D3021]/90 via-[#3D3021]/30 to-transparent" />
+                              {currentBanner.price && (
+                                <div className="absolute right-4 top-4 rounded-full bg-[#C9A962] px-3 py-1 text-sm font-bold text-white shadow-lg">
+                                  {currentBanner.price.toLocaleString()} ر.ي
+                                </div>
+                              )}
+                              <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-3 p-5 text-white md:p-8">
+                                <div>
+                                  <h3 className="text-xl font-bold md:text-3xl">
+                                    {currentBanner.titleAr}
+                                  </h3>
+                                  {currentBanner.descriptionAr && (
+                                    <p className="mt-1 text-sm text-white/80 line-clamp-1 md:text-base">
+                                      {currentBanner.descriptionAr}
+                                    </p>
+                                  )}
+                                  <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-[#C9A962]">
+                                    {currentBanner.ctaAr}
+                                    <ChevronLeft className="h-4 w-4" />
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {bannerItems.map((item, idx) => (
+                                    <button
+                                      key={item.id}
+                                      type="button"
+                                      aria-label={`بنر ${idx + 1}`}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setBannerIndex(
+                                          (idx - groupIndex + bannerItems.length) %
+                                            bannerItems.length,
+                                        );
+                                      }}
+                                      className={`h-2 rounded-full transition-all ${
+                                        (bannerIndex + groupIndex) %
+                                          bannerItems.length ===
+                                        idx
+                                          ? "w-8 bg-[#C9A962]"
+                                          : "w-2 bg-white/50 hover:bg-white/80"
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            </motion.div>
+                          </AnimatePresence>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

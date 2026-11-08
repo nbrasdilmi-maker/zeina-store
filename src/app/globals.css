@@ -353,6 +353,16 @@
   }
 }
 
+/* إخفاء شريط التمرير مع شريط تقدّم ذهبي مخصص */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .animate-pulse-gold {
   animation: pulse-gold 1.5s infinite;
 }
