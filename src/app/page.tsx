@@ -1473,27 +1473,27 @@ function HomeContent() {
           </div>
         </section>
 
-        {/* Features Section */}
-        <section className="py-20 md:py-28 bg-gradient-to-b from-[#3D3021] to-[#2A2318] text-white">
+        {/* Features Section - compact */}
+        <section className="bg-gradient-to-b from-[#3D3021] to-[#2A2318] py-10 text-white md:py-14">
           <div className="container mx-auto px-4">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-center mb-16"
+              className="mb-7 text-center md:mb-9"
             >
-              <span className="text-[#C9A962] text-sm tracking-[0.3em] uppercase mb-4 block">
+              <span className="mb-1.5 block text-[11px] uppercase tracking-[0.3em] text-[#C9A962] md:text-xs">
                 لماذا نحن
               </span>
-              <h2 className="text-4xl md:text-5xl font-bold mb-4">
+              <h2 className="mb-1.5 text-2xl font-bold md:text-3xl">
                 لماذا زينة؟
               </h2>
-              <p className="text-white/60 max-w-xl mx-auto text-lg">
+              <p className="mx-auto max-w-md text-sm text-white/60 md:text-base">
                 نقدم لكِ تجربة تسوق فريدة ومميزة
               </p>
             </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 md:gap-4">
               {[
                 {
                   icon: Sparkles,
@@ -1514,41 +1514,51 @@ function HomeContent() {
               ].map((feature, index) => (
                 <motion.div
                   key={index}
-                  initial={{ opacity: 0, y: 30 }}
+                  initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: index * 0.2 }}
-                  className="text-center p-10 rounded-3xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-[#C9A962]/50 transition-all duration-300 group"
+                  transition={{ delay: index * 0.12 }}
+                  className="group rounded-2xl border border-white/10 bg-white/5 p-4 text-center backdrop-blur-sm transition-all duration-300 hover:border-[#C9A962]/50 md:p-5"
                 >
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#C9A962] to-[#B8956E] flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-                    <feature.icon className="h-10 w-10 text-white" />
+                  <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#C9A962] to-[#B8956E] transition-transform duration-300 group-hover:scale-110 md:h-12 md:w-12">
+                    <feature.icon className="h-5 w-5 text-white md:h-6 md:w-6" />
                   </div>
-                  <h3 className="text-2xl font-bold mb-3">{feature.title}</h3>
-                  <p className="text-white/60">{feature.description}</p>
+                  <h3 className="mb-1 text-base font-bold md:text-lg">
+                    {feature.title}
+                  </h3>
+                  <p className="line-clamp-2 text-xs leading-relaxed text-white/60 md:text-sm">
+                    {feature.description}
+                  </p>
                 </motion.div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="py-20 bg-gradient-to-r from-[#C9A962] via-[#B8956E] to-[#C9A962]">
-          <div className="container mx-auto px-4 text-center">
+        {/* CTA Section - compact */}
+        <section className="bg-gradient-to-r from-[#C9A962] via-[#B8956E] to-[#C9A962] py-8 md:py-10">
+          <div className="container mx-auto px-4">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
+              className="flex flex-col items-center justify-between gap-4 text-center md:flex-row md:text-right"
             >
-              <Gift className="h-12 w-12 text-white mx-auto mb-6" />
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                انضم إلى عائلة زينة
-              </h2>
-              <p className="text-white/80 max-w-xl mx-auto mb-8 text-lg">
-                سجل الآن واحصلي على خصم على أول طلب لك
-              </p>
+              <div className="flex flex-col items-center gap-3 md:flex-row md:gap-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 md:h-12 md:w-12">
+                  <Gift className="h-5 w-5 text-white md:h-6 md:w-6" />
+                </span>
+                <div>
+                  <h2 className="text-xl font-bold text-white md:text-2xl">
+                    انضم إلى عائلة زينة
+                  </h2>
+                  <p className="mt-0.5 text-sm text-white/85 md:text-base">
+                    سجل الآن واحصلي على خصم على أول طلب لك
+                  </p>
+                </div>
+              </div>
               <Button
-                size="lg"
-                className="bg-white text-[#8B7355] hover:bg-[#FAF7F2] px-12 py-7 text-lg rounded-full shadow-xl transition-all duration-300"
+                className="shrink-0 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-[#8B7355] shadow-lg transition-all duration-300 hover:bg-[#FAF7F2] md:px-8 md:py-3 md:text-base"
                 onClick={() => {
                   setAuthTab("register");
                   setIsAuthOpen(true);
